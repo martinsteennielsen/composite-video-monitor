@@ -9,38 +9,32 @@ using System.Threading;
 
 namespace CompositeVideoMonitor {
 
-    class PalMonitor : VideoMonitor {
-        public PalMonitor() : base(hSyncFreq: 15625, vSyncFreq: 25, bandwidthFreq: 5e6) {
+    public class PalMonitor : VideoMonitor {
+        public PalMonitor() : base(hFreq: 15625, vFreq: 25, bandwidthFreq: 5e6) {
         }
     }
         
-    class VideoMonitor {
+    public class VideoMonitor {
         readonly NoiseSignal CompositeSignal;
-        readonly SawtoothSignal VSync, HSync;
-        readonly CRT Tube;
-        readonly double VSyncFreq;
-        readonly double HSyncFreq;
-        readonly double NoOfLines;
-        readonly double SampleTime;
+        readonly SawtoothSignal VOsc, HOsc;
+        public readonly Tube Tube;
         readonly double VGain;
         readonly double HGain;
         readonly double FrameTime;
-        int loopCount=0;
+        readonly double DotTime;
         double SimulatedTime = 0;
+        public double SPF = 0;
+        public int DPS = 0;
 
-        public VideoMonitor(double hSyncFreq, double vSyncFreq,double bandwidthFreq) {
-            Tube = new CRT(height:0.03, width:0.04, deflectionVoltage: 400);
+        public VideoMonitor(double hFreq, double vFreq,double bandwidthFreq) {
+            Tube = new Tube(height:0.03, width:0.04, deflectionVoltage: 400, phosphorGlowTime: 0.01);
             CompositeSignal = new NoiseSignal();
-            VSync = new SawtoothSignal(vSyncFreq, 0);
-            HSync = new SawtoothSignal(hSyncFreq, 0);
-            VSyncFreq = vSyncFreq;
-            HSyncFreq = hSyncFreq;
-            NoOfLines = hSyncFreq/vSyncFreq;
-            SampleTime = 1 / bandwidthFreq;
+            VOsc = new SawtoothSignal(vFreq, 0);
+            HOsc = new SawtoothSignal(hFreq, 0);
+            DotTime = 1 / bandwidthFreq;
+            FrameTime = 1/vFreq;
             VGain = 300;
             HGain = 400;
-            FrameTime = 1/vSyncFreq;
-
         }
 
         public void Run(CancellationToken cancel) {
@@ -50,47 +44,48 @@ namespace CompositeVideoMonitor {
                 lastTime = DateTime.Now;
 
                 double endTime = SimulatedTime + elapsedTime;
+                SPF = FrameTime / elapsedTime;
 
                 if (endTime - FrameTime > SimulatedTime) {
-                    SimulatedTime=endTime-FrameTime;
+                    SimulatedTime = endTime - FrameTime;
                 } 
-                while (SimulatedTime<endTime) {
-                    Tube.AddDot(SimulatedTime, VGain * VSync.Get(SimulatedTime), HGain * HSync.Get(SimulatedTime), CompositeSignal.Get(SimulatedTime));
-                    SimulatedTime+=SampleTime;
+                int dps=0;
+                while (SimulatedTime < endTime) {
+                    Tube.AddDot(SimulatedTime, VGain * VOsc.Get(SimulatedTime), HGain * HOsc.Get(SimulatedTime), CompositeSignal.Get(SimulatedTime));
+                    SimulatedTime+=DotTime;
+                    dps++;
                 }
+                DPS=dps;
                 Tube.RemoveWeakDots(SimulatedTime);
             }
         }
     }
 
-    class CRT {
-        readonly double Width;
-        readonly double Height;
-        readonly double PhosphorPersistenseTime = 0.001;
-        readonly double PhosphorBleedDistance = 0.001;
+    public class Tube {
+        readonly double TubeWidth;
+        readonly double TubeHeight;
+        readonly double PhosphorGlowTime;
+        readonly double FullDeflectionVoltage;
         public List<PhosphorDot> Dots = new List<PhosphorDot>();
-        public double HPos(double hVoltage) => hVoltage*FullDeflectionVoltage;
-        public double VPos(double vVoltage) => vVoltage*FullDeflectionVoltage;
-        double FullDeflectionVoltage;
 
         public void RemoveWeakDots(double time) {
-            Dots = Dots.Where(x => x.Time + PhosphorPersistenseTime > time).ToList();
+            Dots = Dots.Where(x => x.Time + PhosphorGlowTime > time).ToList();
         }
 
-        internal void AddDot(double time, double vSyncVoltage, double hSyncVoltage, double brightness) {
+        internal void AddDot(double time, double vCoilVoltage, double hCoilVoltage, double brightness) {
             var excitation = new PhosphorDot{ 
-                VPos = vSyncVoltage*FullDeflectionVoltage, 
-                HPos = hSyncVoltage*FullDeflectionVoltage, 
+                VPos = vCoilVoltage*TubeHeight/FullDeflectionVoltage, 
+                HPos = hCoilVoltage*TubeWidth/FullDeflectionVoltage, 
                 Time = time, Brightness = brightness};
             Dots.Add(excitation);
         }
 
-        public CRT(double height, double width, double deflectionVoltage) {
+        public Tube(double height, double width, double deflectionVoltage, double phosphorGlowTime) {
             FullDeflectionVoltage = deflectionVoltage;
+            PhosphorGlowTime = phosphorGlowTime;
         }
 
-        public class  PhosphorDot {
-            public bool IsWeak;
+        public struct PhosphorDot {
             public double VPos;
             public double HPos;
             public double Time;
@@ -99,8 +94,8 @@ namespace CompositeVideoMonitor {
     }
 
     class SawtoothSignal {
-        double Frequency;
-        double Pi = Math.PI;
+        readonly double Frequency;
+        readonly double Pi = Math.PI;
 
         public SawtoothSignal(double frequency, double phase) {
             Frequency = frequency;
