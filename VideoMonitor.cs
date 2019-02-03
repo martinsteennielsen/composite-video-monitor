@@ -1,13 +1,10 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Input;
-using System.Threading.Tasks;
 using System.Threading;
 
-namespace CompositeVideoMonitor {
+namespace CompositeVideoMonitor
+{
 
     public class PalMonitor : VideoMonitor {
         public PalMonitor() : base(hFreq: 15625, vFreq: 25, bandwidthFreq: 5e6) {
@@ -27,7 +24,7 @@ namespace CompositeVideoMonitor {
         public int DPS = 0;
 
         public VideoMonitor(double hFreq, double vFreq,double bandwidthFreq) {
-            Tube = new Tube(height:0.03, width:0.04, deflectionVoltage: 400, phosphorGlowTime: 0.01);
+            Tube = new Tube(height:0.03, width:0.04, deflectionVoltage: 400, phosphorGlowTime: 0.02);
             CompositeSignal = new NoiseSignal();
             VOsc = new SawtoothSignal(vFreq, 0);
             HOsc = new SawtoothSignal(hFreq, 0);
@@ -40,12 +37,11 @@ namespace CompositeVideoMonitor {
         public void Run(CancellationToken cancel) {
             var lastTime = DateTime.Now;
             while (!cancel.IsCancellationRequested) {
-                var elapsedTime = (DateTime.Now - lastTime).TotalSeconds;
-                lastTime = DateTime.Now;
+                var currentTime = DateTime.Now;
+                var elapsedTime = (currentTime - lastTime).TotalSeconds;
+                lastTime = currentTime;
 
                 double endTime = SimulatedTime + elapsedTime;
-                SPF = FrameTime / elapsedTime;
-
                 if (endTime - FrameTime > SimulatedTime) {
                     SimulatedTime = endTime - FrameTime;
                 } 
@@ -55,8 +51,9 @@ namespace CompositeVideoMonitor {
                     SimulatedTime+=DotTime;
                     dps++;
                 }
-                DPS=dps;
                 Tube.RemoveWeakDots(SimulatedTime);
+                DPS=dps;
+                SPF = FrameTime / elapsedTime;
             }
         }
     }
@@ -83,6 +80,8 @@ namespace CompositeVideoMonitor {
         public Tube(double height, double width, double deflectionVoltage, double phosphorGlowTime) {
             FullDeflectionVoltage = deflectionVoltage;
             PhosphorGlowTime = phosphorGlowTime;
+            TubeHeight = height;
+            TubeWidth = width;
         }
 
         public struct PhosphorDot {

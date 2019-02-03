@@ -1,6 +1,7 @@
 ﻿using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Input;
+using OpenTK.Graphics.OpenGL;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
@@ -22,8 +23,8 @@ namespace CompositeVideoMonitor
         }
     }
     public class Statistics {
-        VideoMonitor Monitor;
-        Renderer Renderer;
+        readonly VideoMonitor Monitor;
+        readonly Renderer Renderer;
         public Statistics(Renderer renderer, VideoMonitor monitor) {
             Renderer = renderer;    
             Monitor = monitor;
@@ -37,7 +38,7 @@ namespace CompositeVideoMonitor
         }
     }
     public class Renderer : GameWindow {
-        VideoMonitor Model;
+        readonly VideoMonitor Model;
         public double FPS = 0;
         public Renderer(VideoMonitor model, int width, int height, string title) : base(width, height, GraphicsMode.Default, title ) {
             Model = model;
@@ -49,6 +50,25 @@ namespace CompositeVideoMonitor
                 Exit();
             }
             base.OnUpdateFrame(e);
+        }
+        protected override void OnRenderFrame(FrameEventArgs e) {
+            GL.ClearColor(Color.FromArgb(255,5,5,5));
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.Flush();
+            GL.Begin(PrimitiveType.Quads);
+            var dots = Model.Tube.Dots.ToArray();
+            foreach(var dot in dots) {
+                var brightness = (int)(255*dot.Brightness);
+                GL.Color3(Color.FromArgb(255, brightness, brightness,brightness));
+                var vPos=dot.VPos*20;
+                var hPos=dot.HPos*20;
+                GL.Vertex2(hPos,vPos);
+                GL.Vertex2(0.01+hPos,vPos);
+                GL.Vertex2(0.01+hPos,0.01+vPos);
+                GL.Vertex2(hPos,0.01+vPos);
+            }
+            GL.End();
+            SwapBuffers();
         }
     }
  }
