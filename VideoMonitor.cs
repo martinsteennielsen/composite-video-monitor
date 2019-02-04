@@ -34,24 +34,28 @@ namespace CompositeVideoMonitor
             HGain = 400;
         }
 
-        public void Run(CancellationToken cancel) {
+        public void Run(CancellationToken canceller) {
             var lastTime = DateTime.Now;
-            while (!cancel.IsCancellationRequested) {
+            while (!canceller.IsCancellationRequested) {
                 var currentTime = DateTime.Now;
                 var elapsedTime = (currentTime - lastTime).TotalSeconds;
                 lastTime = currentTime;
 
+                double startTime = SimulatedTime;
                 double endTime = SimulatedTime + elapsedTime;
                 if (endTime - FrameTime > SimulatedTime) {
                     SimulatedTime = endTime - FrameTime;
                 } 
                 int dps=0;
+
+                var dots = new List<Tube.PhosphorDot>();
                 while (SimulatedTime < endTime) {
-                    Tube.AddDot(SimulatedTime, VGain * VOsc.Get(SimulatedTime), HGain * HOsc.Get(SimulatedTime), CompositeSignal.Get(SimulatedTime));
+                    dots.Add( new Tube.PhosphorDot { VVolt = VGain * VOsc.Get(SimulatedTime), HVolt = HGain * HOsc.Get(SimulatedTime),
+                                                     Brightness = CompositeSignal.Get(SimulatedTime), Time = SimulatedTime } );
                     SimulatedTime+=DotTime;
                     dps++;
                 }
-                Tube.RemoveWeakDots(SimulatedTime);
+                Tube.UpdateDots(dots, startTime, SimulatedTime);
                 DPS=dps;
                 SPF = FrameTime / elapsedTime;
             }
@@ -59,23 +63,42 @@ namespace CompositeVideoMonitor
     }
 
     public class Tube {
+        readonly object GateKeeper = new object();
         readonly double TubeWidth;
         readonly double TubeHeight;
+
+        public double HPos(PhosphorDot dot) => dot.HVolt*TubeWidth/FullDeflectionVoltage;
+        public double VPos(PhosphorDot dot) => dot.VVolt*TubeHeight/FullDeflectionVoltage;
+
         readonly double PhosphorGlowTime;
         readonly double FullDeflectionVoltage;
-        public List<PhosphorDot> Dots = new List<PhosphorDot>();
+        List<PhosphorDots> Dots = new List<PhosphorDots>();
 
-        public void RemoveWeakDots(double time) {
-            Dots = Dots.Where(x => x.Time + PhosphorGlowTime > time).ToList();
+        internal void UpdateDots(List<PhosphorDot> dots, double startTime, double endTime) {
+            var newDots = RemoveDots(GetDots(),endTime);
+            newDots.Add(new PhosphorDots { Dots = dots, StartTime = startTime, EndTime = endTime } );
+            lock(GateKeeper) {
+                Dots = newDots;
+            }
         }
 
-        internal void AddDot(double time, double vCoilVoltage, double hCoilVoltage, double brightness) {
-            var excitation = new PhosphorDot{ 
-                VPos = vCoilVoltage*TubeHeight/FullDeflectionVoltage, 
-                HPos = hCoilVoltage*TubeWidth/FullDeflectionVoltage, 
-                Time = time, Brightness = brightness};
-            Dots.Add(excitation);
+        List<PhosphorDots> RemoveDots(List<PhosphorDots> dots, double time) {
+            var glowStartTime = time - PhosphorGlowTime;
+            var glowingDots = dots.Where(x => x.StartTime > glowStartTime).ToList();
+            
+            var newDots = new List<PhosphorDots>();
+            foreach (var dimmingDots in glowingDots.Where(x=> x.EndTime < glowStartTime)) {
+                newDots.Add(new PhosphorDots { Dots = dimmingDots.Dots.Where(x=>x.Time > glowStartTime).ToList(), StartTime = glowStartTime, EndTime = dimmingDots.EndTime });
+            }
+            newDots.AddRange(glowingDots);
+            return newDots;
         }
+
+        public List<PhosphorDots> GetDots() {
+            lock (GateKeeper) {
+                return Dots.ToList();
+            }
+        } 
 
         public Tube(double height, double width, double deflectionVoltage, double phosphorGlowTime) {
             FullDeflectionVoltage = deflectionVoltage;
@@ -84,12 +107,19 @@ namespace CompositeVideoMonitor
             TubeWidth = width;
         }
 
+        public class PhosphorDots {
+            public double StartTime;
+            public double EndTime;
+            public List<PhosphorDot> Dots;
+        }
+
         public struct PhosphorDot {
-            public double VPos;
-            public double HPos;
+            public double VVolt;
+            public double HVolt;
             public double Time;
             public double Brightness;
         }
+
     }
 
     class SawtoothSignal {
