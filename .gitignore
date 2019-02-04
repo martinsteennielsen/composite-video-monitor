@@ -1,4 +1,5 @@
-obj/
-bin/
-.vscode/
-.omnisharp/
+/obj/
+/bin/
+/.vscode/
+/.omnisharp/
+/.vs
