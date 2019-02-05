@@ -16,7 +16,7 @@ namespace CompositeVideoMonitor {
         public int DPS = 0;
 
         public VideoMonitor(double hFreq, double vFreq, double bandwidthFreq) {
-            Tube = new Tube(height: 0.3, width: 0.4, deflectionVoltage: 200, phosphorGlowTime: 1 / vFreq);
+            Tube = new Tube(height: 0.3, width: 0.4, deflectionVoltage: 200, phosphorGlowTime: 1.0 / vFreq);
             VOsc = new SawtoothSignal(vFreq, 0);
             HOsc = new SawtoothSignal(hFreq, 0);
             DotTime = 1.0 / bandwidthFreq;
@@ -48,7 +48,7 @@ namespace CompositeVideoMonitor {
                     });
                     SimulatedTime += DotTime;
                 }
-                Tube.UpdateDots(dots, startTime, SimulatedTime);
+                Tube.UpdateDots(dots, startTime, endTime: SimulatedTime);
 
                 DPS = dots.Count;
                 SPF = FrameTime / elapsedTime;
@@ -57,12 +57,7 @@ namespace CompositeVideoMonitor {
     }
 
     public class PalMonitor : VideoMonitor {
-        public PalMonitor() : base(hFreq: 15625, vFreq: 25, bandwidthFreq: 5e6) {
-        }
-    }
-
-    public class SlowMonitor : VideoMonitor {
-        public SlowMonitor() : base(hFreq: 0.5, vFreq: 0.025, bandwidthFreq: 0.5 * 300) {
+        public PalMonitor(double freqScale = 1) : base(hFreq: 15625*freqScale, vFreq: 25*freqScale, bandwidthFreq: 5e6* freqScale) {
         }
     }
 }
