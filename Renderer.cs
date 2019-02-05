@@ -6,16 +6,15 @@ using System.Linq;
 
 namespace CompositeVideoMonitor {
     public class Renderer : GameWindow {
-        readonly Tube CRT;
-        public double FPS = 0;
-        public int DotCount;
-        double ScaleX, ScaleY;
+        readonly VideoMonitor CRT;
+        readonly Logger Logger;
+        readonly double ScaleX, ScaleY;
 
-
-        public Renderer(Tube tube, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
-            CRT = tube;
-            ScaleX = 2.0 / tube.TubeWidth;
-            ScaleY = 2.0 / tube.TubeHeight;
+        public Renderer(VideoMonitor monitor, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+            CRT = monitor;
+            Logger = logger;
+            ScaleX = 2.0 / CRT.TubeWidth;
+            ScaleY = 2.0 / CRT.TubeHeight;
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e) {
@@ -25,14 +24,13 @@ namespace CompositeVideoMonitor {
             }
             base.OnUpdateFrame(e);
         }
+
         protected override void OnRenderFrame(FrameEventArgs e) {
-            FPS = 1.0 / e.Time;
             GL.ClearColor(Color.FromArgb(255, 5, 5, 5));
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
             GL.Begin(PrimitiveType.Quads);
             var dots = CRT.GetDots();
-            DotCount = dots.Sum(x => x.Dots.Count);
             foreach (var dot in dots.SelectMany(x => x.Dots)) {
                 var brightness = (int)(255 * dot.Brightness);
                 GL.Color3(Color.FromArgb(255, brightness, brightness, brightness));
@@ -45,6 +43,9 @@ namespace CompositeVideoMonitor {
             }
             GL.End();
             SwapBuffers();
+
+            Logger.DotCount = dots.Sum(x => x.Dots.Count);
+            Logger.FramesPrSecond = 1.0 / e.Time;
         }
     }
 }
