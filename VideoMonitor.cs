@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,8 +14,8 @@ namespace CompositeVideoMonitor {
     }
 
     public class PhosphorDots {
-        public double StartTime;
-        public double EndTime;
+        public double OldestDotTime;
+        public double NewestDotTime;
         public List<PhosphorDot> Dots;
     }
 
@@ -48,28 +49,32 @@ namespace CompositeVideoMonitor {
 
         public void Run(CancellationToken canceller, ISignal signal, Logger logger) {
             double simulatedTime = 0;
-            var lastTime = DateTime.Now;
+            var timer = new Stopwatch();
+            timer.Start();
+            double lastTime= 0;
+
             while (!canceller.IsCancellationRequested) {
-                var currentTime = DateTime.Now;
-                var elapsedTime = (currentTime - lastTime).TotalSeconds;
-                lastTime = currentTime;
+
+                while(timer.Elapsed.TotalSeconds - lastTime < 100*TimePrDot) {
+                        Thread.Yield();
+                }
+
+                var tmpTime = timer.Elapsed.TotalSeconds;
+                var elapsedTime = (tmpTime - lastTime);
+                lastTime = tmpTime;
+
+                if (elapsedTime > 2.0 * TimePrFrame) {
+                    simulatedTime += TimePrFrame;
+                    logger.SkippedFrames++;
+                }
 
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                // Too slow or too fast
-                if (endTime - TimePrFrame > simulatedTime) {
-                    simulatedTime = endTime - TimePrFrame;
-                    logger.SkippedFrames++;
-                } else if (elapsedTime < 4*TimePrDot) {
-                    Thread.Yield();
-                    continue;
-                }
-
                 var (endOfSimulationTime, dots) = SimulateDots(signal, time: simulatedTime, endTime: endTime);
                 simulatedTime = endOfSimulationTime;
                 var newDots = RemoveDots(GetDots(), simulatedTime);
-                newDots.Add(new PhosphorDots { Dots = dots, StartTime = startTime, EndTime = simulatedTime });
+                newDots.Add(new PhosphorDots { Dots = dots, OldestDotTime = startTime, NewestDotTime = simulatedTime });
                 lock (GateKeeper) {
                     Dots = newDots;
                 }
@@ -99,20 +104,23 @@ namespace CompositeVideoMonitor {
         }
 
         private List<PhosphorDots> RemoveDots(List<PhosphorDots> dots, double time) {
-            var glowStartTime = time - PhosphorGlowTime;
-            var glowingDots = dots.Where(x => x.StartTime > glowStartTime).ToList();
+            var dimmestDotTime = time - PhosphorGlowTime;
+
+            var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime > dimmestDotTime).ToList();
+            var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime  <= dimmestDotTime);
 
             var newDots = new List<PhosphorDots>();
-            foreach (var dimmingDots in glowingDots.Where(x => x.EndTime < glowStartTime)) {
-                newDots.Add(new PhosphorDots { Dots = dimmingDots.Dots.Where(x => x.Time > glowStartTime).ToList(), StartTime = glowStartTime, EndTime = dimmingDots.EndTime });
+            foreach (var dimmingDots in someDotsGlowing) {
+                newDots.Add(new PhosphorDots { Dots = dimmingDots.Dots.Where(x => x.Time > dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
             }
-            newDots.AddRange(glowingDots);
+            var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime > dimmestDotTime);
+            newDots.AddRange(allDotsGlowing);
             return newDots;
         }
     }
 
     public class PalMonitor : VideoMonitor {
-        public PalMonitor() : base(hFreq: 15625, vFreq: 25, bandwidthFreq: 5e6, freqScaler: 1.0) {
+        public PalMonitor() : base(hFreq: 15625, vFreq: 50, bandwidthFreq: 5e6, freqScaler: 1) {
         }
     }
 }
