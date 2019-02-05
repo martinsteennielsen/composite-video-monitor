@@ -4,7 +4,10 @@ using System.Collections.Generic;
 using System.Threading;
 
 namespace CompositeVideoMonitor {
-    
+    public interface ISignal {
+        double Get(double time);
+    }
+
     public class SawtoothSignal {
         readonly double Frequency;
         readonly double Pi = Math.PI;
@@ -12,10 +15,10 @@ namespace CompositeVideoMonitor {
         public SawtoothSignal(double frequency, double phase) {
             Frequency = frequency;
         }
-        public double Get(double time) => 2.0/Pi * (Frequency * Pi * (time % (1.0 /Frequency)) - (Pi / 2.0));
+        public double Get(double time) => 2.0 / Pi * (Frequency * Pi * (time % (1.0 / Frequency)) - (Pi / 2.0));
     }
 
-    public class NoiseSignal {
+    public class NoiseSignal : ISignal {
         Random Randomizer = new Random();
         public double Get(double time) => Randomizer.NextDouble();
     }

@@ -2,13 +2,12 @@ using System.Threading.Tasks;
 using System.Threading;
 using System;
 
-namespace CompositeVideoMonitor
-{
+namespace CompositeVideoMonitor {
     public class Logger {
         readonly VideoMonitor Monitor;
         readonly Renderer Renderer;
         public Logger(Renderer renderer, VideoMonitor monitor) {
-            Renderer = renderer;    
+            Renderer = renderer;
             Monitor = monitor;
         }
 
