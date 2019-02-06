@@ -20,22 +20,24 @@ namespace CompositeVideoMonitor {
                     Exit();
                 }
             };
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
         }
-        
+
         protected override void OnRenderFrame(FrameEventArgs e) {
-            GL.ClearColor(Color.FromArgb(255, 5, 5, 5));
+            GL.ClearColor(Color.Black);
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
             GL.Begin(PrimitiveType.Quads);
-            var dotRadius = CRT.TubeDotSize / 2;
+            var dotRadius = 2.0 * CRT.TubeDotSize / 2;
             var dots = CRT.GetDots();
             var simulationTime = CRT.SimulatedTime;
             foreach (var dot in dots.SelectMany(x => x.Dots)) {
-                var dotLifeTime = 1-(simulationTime - dot.Time) / CRT.PhosphorGlowTime;
+                var dotLifeTime = 1 - (simulationTime - dot.Time) / CRT.PhosphorGlowTime;
                 if (dotLifeTime < 0) continue;
                 if (dotLifeTime > 1) continue;
-                var brightness = (int)(255 * dot.Brightness * dotLifeTime);
-                GL.Color3(Color.FromArgb(255, brightness, brightness, brightness));
+                var brightness = dot.Brightness * dotLifeTime;
+                GL.Color4(brightness, brightness, brightness, 0.3);
                 var vPos = -CRT.VPos(dot);
                 var hPos = CRT.HPos(dot);
                 GL.Vertex2((hPos - dotRadius) * ScaleX, (vPos + dotRadius) * ScaleY);

@@ -22,7 +22,7 @@ namespace CompositeVideoMonitor {
     public class VideoMonitor {
         public readonly double TubeWidth = 0.4;
         public readonly double TubeHeight = 0.3;
-        public readonly double TubeDotSize = 0.005;
+        public readonly double TubeDotSize;
         public readonly double PhosphorGlowTime;
 
         readonly object GateKeeper = new object();
