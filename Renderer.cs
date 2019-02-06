@@ -15,31 +15,33 @@ namespace CompositeVideoMonitor {
             Logger = logger;
             ScaleX = 2.0 / CRT.TubeWidth;
             ScaleY = 2.0 / CRT.TubeHeight;
+            KeyDown += (_, e) => {
+                if (e.Key == Key.Escape) {
+                    Exit();
+                }
+            };
         }
-
-        protected override void OnUpdateFrame(FrameEventArgs e) {
-            KeyboardState input = Keyboard.GetState();
-            if (input.IsKeyDown(Key.Escape)) {
-                Exit();
-            }
-            base.OnUpdateFrame(e);
-        }
-
+        
         protected override void OnRenderFrame(FrameEventArgs e) {
             GL.ClearColor(Color.FromArgb(255, 5, 5, 5));
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
             GL.Begin(PrimitiveType.Quads);
+            var dotRadius = CRT.TubeDotSize / 2;
             var dots = CRT.GetDots();
+            var simulationTime = CRT.SimulatedTime;
             foreach (var dot in dots.SelectMany(x => x.Dots)) {
-                var brightness = (int)(255 * dot.Brightness);
+                var dotLifeTime = 1-(simulationTime - dot.Time) / CRT.PhosphorGlowTime;
+                if (dotLifeTime < 0) continue;
+                if (dotLifeTime > 1) continue;
+                var brightness = (int)(255 * dot.Brightness * dotLifeTime);
                 GL.Color3(Color.FromArgb(255, brightness, brightness, brightness));
-                var vPos = CRT.VPos(dot) * ScaleY;
-                var hPos = CRT.HPos(dot) * ScaleX;
-                GL.Vertex2(hPos, vPos);
-                GL.Vertex2(0.01 + hPos, vPos);
-                GL.Vertex2(0.01 + hPos, 0.01 + vPos);
-                GL.Vertex2(hPos, 0.01 + vPos);
+                var vPos = -CRT.VPos(dot);
+                var hPos = CRT.HPos(dot);
+                GL.Vertex2((hPos - dotRadius) * ScaleX, (vPos + dotRadius) * ScaleY);
+                GL.Vertex2((hPos + dotRadius) * ScaleX, (vPos + dotRadius) * ScaleY);
+                GL.Vertex2((hPos + dotRadius) * ScaleX, (vPos - dotRadius) * ScaleY);
+                GL.Vertex2((hPos - dotRadius) * ScaleX, (vPos - dotRadius) * ScaleY);
             }
             GL.End();
             SwapBuffers();

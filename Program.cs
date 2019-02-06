@@ -5,7 +5,7 @@ namespace CompositeVideoMonitor {
     class Program {
         static void Main(string[] args) {
             var logger = new Logger();
-            var videoMonitor = new PalMonitor();
+            var videoMonitor = new DebugPalMonitor();
             using (Renderer renderer = new Renderer(videoMonitor, logger, 600, 400, "PAL")) {
                 var canceller = new CancellationTokenSource();
                 Task.Run(() => { logger.Run(canceller.Token); });

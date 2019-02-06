@@ -22,6 +22,8 @@ namespace CompositeVideoMonitor {
     public class VideoMonitor {
         public readonly double TubeWidth = 0.4;
         public readonly double TubeHeight = 0.3;
+        public readonly double TubeDotSize = 0.005;
+        public readonly double PhosphorGlowTime;
 
         readonly object GateKeeper = new object();
         readonly SawtoothSignal VOsc, HOsc;
@@ -31,12 +33,13 @@ namespace CompositeVideoMonitor {
         readonly double FullDeflectionVoltage = 200;
         readonly double TimePrFrame;
         readonly double TimePrDot;
-        readonly double PhosphorGlowTime;
 
         public double HPos(PhosphorDot dot) => 0.5 * dot.HVolt * TubeWidth / FullDeflectionVoltage;
-        public double VPos(PhosphorDot dot) => -0.5 * dot.VVolt * TubeHeight / FullDeflectionVoltage;
+        public double VPos(PhosphorDot dot) => 0.5 * dot.VVolt * TubeHeight / FullDeflectionVoltage;
 
         List<PhosphorDots> Dots = new List<PhosphorDots>();
+
+        public double SimulatedTime;
 
         public VideoMonitor(double hFreq, double vFreq, double bandwidthFreq, double freqScaler = 1) {
             FullDeflectionVoltage = 200;
@@ -45,18 +48,25 @@ namespace CompositeVideoMonitor {
             HOsc = new SawtoothSignal(hFreq * freqScaler, 0);
             TimePrDot = 1.0 / (bandwidthFreq * freqScaler);
             TimePrFrame = 1.0 / (vFreq * freqScaler);
+            TubeDotSize = Math.Abs(0.5 * (HOsc.Get(0) - HOsc.Get(TimePrDot)) * FullDeflectionVoltage * TubeWidth / FullDeflectionVoltage);
+            SimulatedTime = 0;
         }
 
         public void Run(CancellationToken canceller, ISignal signal, Logger logger) {
-            double simulatedTime = 0;
+            double simulatedTime = 0, lastTime = 0;
+
             var timer = new Stopwatch();
             timer.Start();
-            double lastTime= 0;
 
             while (!canceller.IsCancellationRequested) {
 
-                while(timer.Elapsed.TotalSeconds - lastTime < 100*TimePrDot) {
+                double minTime = 100 * TimePrDot;
+                while (timer.Elapsed.TotalSeconds - lastTime < minTime) {
+                    if (minTime > 0.001) {
+                        Task.Delay((int)(minTime * 1000)).Wait();
+                    } else {
                         Thread.Yield();
+                    }
                 }
 
                 var tmpTime = timer.Elapsed.TotalSeconds;
@@ -64,8 +74,10 @@ namespace CompositeVideoMonitor {
                 lastTime = tmpTime;
 
                 if (elapsedTime > 2.0 * TimePrFrame) {
-                    simulatedTime += TimePrFrame;
-                    logger.SkippedFrames++;
+                    var skipTime = (elapsedTime - TimePrFrame);
+                    simulatedTime += skipTime;
+                    logger.SkippedFrames+= (int)(skipTime/TimePrFrame);
+                    elapsedTime = TimePrFrame;
                 }
 
                 double startTime = simulatedTime;
@@ -78,6 +90,7 @@ namespace CompositeVideoMonitor {
                 lock (GateKeeper) {
                     Dots = newDots;
                 }
+                SimulatedTime = simulatedTime;
                 logger.SimulationsPrFrame = TimePrFrame / elapsedTime;
                 logger.DotsPrSimulation = dots.Count;
             }
@@ -107,7 +120,7 @@ namespace CompositeVideoMonitor {
             var dimmestDotTime = time - PhosphorGlowTime;
 
             var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime > dimmestDotTime).ToList();
-            var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime  <= dimmestDotTime);
+            var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime <= dimmestDotTime);
 
             var newDots = new List<PhosphorDots>();
             foreach (var dimmingDots in someDotsGlowing) {
@@ -120,7 +133,12 @@ namespace CompositeVideoMonitor {
     }
 
     public class PalMonitor : VideoMonitor {
-        public PalMonitor() : base(hFreq: 15625, vFreq: 50, bandwidthFreq: 5e6, freqScaler: 1) {
+        public PalMonitor() : base(hFreq: 15625, vFreq: 50, bandwidthFreq: 5e6) {
+        }
+    }
+
+    public class DebugPalMonitor : VideoMonitor {
+        public DebugPalMonitor() : base(hFreq: 15625 / 10, vFreq: 50, bandwidthFreq: 5e6 / 50, freqScaler: 0.01) {
         }
     }
 }
