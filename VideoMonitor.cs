@@ -41,13 +41,13 @@ namespace CompositeVideoMonitor {
 
         public double SimulatedTime;
 
-        public VideoMonitor(double hFreq, double vFreq, double bandwidthFreq, double freqScaler = 1) {
+        public VideoMonitor(double hFreq, double vFreq, double bandwidthFreq) {
             FullDeflectionVoltage = 200;
-            PhosphorGlowTime = 1.0 / (vFreq * freqScaler);
-            VOsc = new SawtoothSignal(vFreq * freqScaler, 0);
-            HOsc = new SawtoothSignal(hFreq * freqScaler, 0);
-            TimePrDot = 1.0 / (bandwidthFreq * freqScaler);
-            TimePrFrame = 1.0 / (vFreq * freqScaler);
+            PhosphorGlowTime = 1.0 / (vFreq);
+            VOsc = new SawtoothSignal(vFreq, 0);
+            HOsc = new SawtoothSignal(hFreq, 0);
+            TimePrDot = 1.0 / (bandwidthFreq);
+            TimePrFrame = 1.0 / vFreq;
             TubeDotSize = Math.Abs(0.5 * (HOsc.Get(0) - HOsc.Get(TimePrDot)) * FullDeflectionVoltage * TubeWidth / FullDeflectionVoltage);
             SimulatedTime = 0;
         }
@@ -138,7 +138,7 @@ namespace CompositeVideoMonitor {
     }
 
     public class DebugPalMonitor : VideoMonitor {
-        public DebugPalMonitor() : base(hFreq: 15625 / 10, vFreq: 50, bandwidthFreq: 5e6 / 50, freqScaler: 0.01) {
+        public DebugPalMonitor(double dotSize, double framesPrSec) : base(hFreq: (312.5/dotSize) * framesPrSec, vFreq: framesPrSec, bandwidthFreq: (320 / dotSize) * (312.5 / dotSize) * framesPrSec) {
         }
     }
 }

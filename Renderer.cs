@@ -21,7 +21,7 @@ namespace CompositeVideoMonitor {
                 }
             };
             GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+            GL.BlendFunc(BlendingFactorSrc.SrcColor, BlendingFactorDest.DstColor);
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
@@ -29,7 +29,7 @@ namespace CompositeVideoMonitor {
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
             GL.Begin(PrimitiveType.Quads);
-            var dotRadius = 2.0 * CRT.TubeDotSize / 2;
+            var dotRadius = CRT.TubeDotSize / 2;
             var dots = CRT.GetDots();
             var simulationTime = CRT.SimulatedTime;
             foreach (var dot in dots.SelectMany(x => x.Dots)) {
