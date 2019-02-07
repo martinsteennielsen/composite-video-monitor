@@ -20,35 +20,32 @@ namespace CompositeVideoMonitor {
     }
 
     public class VideoMonitor {
+        readonly Timing Timing;
+        readonly SawtoothSignal VOsc;
+        readonly SawtoothSignal HOsc;
+        readonly object GateKeeper = new object();
+
         public readonly double TubeWidth = 0.4;
         public readonly double TubeHeight = 0.3;
-        public readonly double TubeDotSize;
         public readonly double PhosphorGlowTime;
-
-        readonly object GateKeeper = new object();
-        readonly SawtoothSignal VOsc, HOsc;
 
         readonly double VGain = 150;
         readonly double HGain = 200;
         readonly double FullDeflectionVoltage = 200;
-        readonly double TimePrFrame;
-        readonly double TimePrDot;
 
-        public double HPos(PhosphorDot dot) => 0.5 * dot.HVolt * TubeWidth / FullDeflectionVoltage;
-        public double VPos(PhosphorDot dot) => 0.5 * dot.VVolt * TubeHeight / FullDeflectionVoltage;
+        public double HPos(double volt) => 0.5 * volt * HGain * TubeWidth / FullDeflectionVoltage;
+        public double VPos(double volt) => 0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
 
         List<PhosphorDots> Dots = new List<PhosphorDots>();
 
         public double SimulatedTime;
 
-        public VideoMonitor(double hFreq, double vFreq, double bandwidthFreq) {
+        public VideoMonitor(Timing timing) {
+            Timing = timing;
+            VOsc = new SawtoothSignal(timing.VFreq, 0);
+            HOsc = new SawtoothSignal(timing.HFreq, 0);
             FullDeflectionVoltage = 200;
-            PhosphorGlowTime = 1.0 / (vFreq);
-            VOsc = new SawtoothSignal(vFreq, 0);
-            HOsc = new SawtoothSignal(hFreq, 0);
-            TimePrDot = 1.0 / (bandwidthFreq);
-            TimePrFrame = 1.0 / vFreq;
-            TubeDotSize = Math.Abs(0.5 * (HOsc.Get(0) - HOsc.Get(TimePrDot)) * FullDeflectionVoltage * TubeWidth / FullDeflectionVoltage);
+            PhosphorGlowTime = 1.0 / (Timing.VFreq);
             SimulatedTime = 0;
         }
 
@@ -60,7 +57,7 @@ namespace CompositeVideoMonitor {
 
             while (!canceller.IsCancellationRequested) {
 
-                double minTime = 100 * TimePrDot;
+                double minTime = 2 * Timing.DotTime;
                 while (timer.Elapsed.TotalSeconds - lastTime < minTime) {
                     if (minTime > 0.001) {
                         Task.Delay((int)(minTime * 1000)).Wait();
@@ -73,11 +70,11 @@ namespace CompositeVideoMonitor {
                 var elapsedTime = (tmpTime - lastTime);
                 lastTime = tmpTime;
 
-                if (elapsedTime > 2.0 * TimePrFrame) {
-                    var skipTime = (elapsedTime - TimePrFrame);
+                if (elapsedTime > 2.0 * Timing.FrameTime) {
+                    var skipTime = (elapsedTime - Timing.FrameTime);
                     simulatedTime += skipTime;
-                    logger.SkippedFrames+= (int)(skipTime/TimePrFrame);
-                    elapsedTime = TimePrFrame;
+                    logger.SkippedFrames+= (int)(skipTime/ Timing.FrameTime);
+                    elapsedTime = Timing.FrameTime;
                 }
 
                 double startTime = simulatedTime;
@@ -91,7 +88,7 @@ namespace CompositeVideoMonitor {
                     Dots = newDots;
                 }
                 SimulatedTime = simulatedTime;
-                logger.SimulationsPrFrame = TimePrFrame / elapsedTime;
+                logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
                 logger.DotsPrSimulation = dots.Count;
             }
         }
@@ -100,12 +97,12 @@ namespace CompositeVideoMonitor {
             var dots = new List<PhosphorDot>();
             while (time < endTime) {
                 dots.Add(new PhosphorDot {
-                    VVolt = VGain * VOsc.Get(time),
-                    HVolt = HGain * HOsc.Get(time),
+                    VVolt = VOsc.Get(time),
+                    HVolt = HOsc.Get(time),
                     Brightness = signal.Get(time),
                     Time = time
                 });
-                time += TimePrDot;
+                time += Timing.DotTime;
             }
             return (time, dots);
         }
@@ -129,16 +126,6 @@ namespace CompositeVideoMonitor {
             var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime > dimmestDotTime);
             newDots.AddRange(allDotsGlowing);
             return newDots;
-        }
-    }
-
-    public class PalMonitor : VideoMonitor {
-        public PalMonitor() : base(hFreq: 15625, vFreq: 50, bandwidthFreq: 5e6) {
-        }
-    }
-
-    public class DebugPalMonitor : VideoMonitor {
-        public DebugPalMonitor(double dotSize, double framesPrSec) : base(hFreq: (312.5/dotSize) * framesPrSec, vFreq: framesPrSec, bandwidthFreq: (320 / dotSize) * (312.5 / dotSize) * framesPrSec) {
         }
     }
 }
