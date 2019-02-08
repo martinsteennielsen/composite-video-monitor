@@ -29,9 +29,9 @@ namespace CompositeVideoMonitor {
         public readonly double TubeHeight = 0.3;
         public readonly double PhosphorGlowTime;
 
-        readonly double VGain = 150;
-        readonly double HGain = 200;
-        readonly double FullDeflectionVoltage = 200;
+        readonly double VGain = 30;
+        readonly double HGain = 40;
+        readonly double FullDeflectionVoltage = 40;
 
         public double HPos(double volt) => 0.5 * volt * HGain * TubeWidth / FullDeflectionVoltage;
         public double VPos(double volt) => 0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
@@ -44,7 +44,6 @@ namespace CompositeVideoMonitor {
             Timing = timing;
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
-            FullDeflectionVoltage = 200;
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
             SimulatedTime = 0;
         }

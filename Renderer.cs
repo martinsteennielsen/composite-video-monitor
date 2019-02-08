@@ -2,6 +2,7 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
+using System;
 using System.Linq;
 
 namespace CompositeVideoMonitor {
@@ -11,7 +12,7 @@ namespace CompositeVideoMonitor {
         readonly Logger Logger;
         readonly double ScaleX, ScaleY;
         readonly double Focus = 1;
-        readonly double DeltaXT1, DeltaXT2, DeltaXT3, DeltaYT1, DeltaYT2, DeltaYT3;
+        readonly double Slope, DotWidth, DotHeight;
 
         public Renderer(VideoMonitor monitor, Timing timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             CRT = monitor;
@@ -28,34 +29,36 @@ namespace CompositeVideoMonitor {
             GL.BlendFunc(BlendingFactorSrc.SrcColor, BlendingFactorDest.DstColor);
             var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: 0);
             var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: 0);
-            double t1 = Timing.DotTime, t2 = Timing.LineTime, t3 = Timing.LineTime + Timing.DotTime;
-            DeltaXT1 = Focus*(CRT.HPos(hOsc.Get(t1)) - CRT.HPos(hOsc.Get(0)));
-            DeltaXT2 = Focus*(CRT.HPos(hOsc.Get(t2)) - CRT.HPos(hOsc.Get(0)));
-            DeltaXT3 = Focus*(CRT.HPos(hOsc.Get(t3)) - CRT.HPos(hOsc.Get(0)));
-            DeltaYT1 = Focus*(CRT.VPos(vOsc.Get(t1)) - CRT.VPos(vOsc.Get(0)));
-            DeltaYT2 = Focus*(CRT.VPos(vOsc.Get(t2)) - CRT.VPos(vOsc.Get(0)));
-            DeltaYT3 = Focus*(CRT.VPos(vOsc.Get(t3)) - CRT.VPos(vOsc.Get(0)));
+
+            double dx = CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0));
+            double dy = CRT.VPos(vOsc.Get(Timing.LineTime)) - CRT.VPos(vOsc.Get(0));
+            DotWidth = ScaleX * dx;
+            DotHeight= -ScaleY * dy;
+            Slope = Math.Atan2( CRT.VPos(vOsc.Get(0)) - CRT.VPos(vOsc.Get(Timing.DotTime)), dx );
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
+            
             GL.ClearColor(Color.Black);
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
             GL.Begin(PrimitiveType.Quads);
             var dots = CRT.GetDots();
-            var simulationTime = CRT.SimulatedTime;
+            double simulationTime = CRT.SimulatedTime;
+            double dx = 0.5 * Focus * DotWidth;
+            double dy = 0.5 * Focus * DotHeight;
             foreach (var dot in dots.SelectMany(x => x.Dots)) {
-                //var dotLifeTime = 1 - (simulationTime - dot.Time) / CRT.PhosphorGlowTime;
-                //if (dotLifeTime < 0) continue;
-                //if (dotLifeTime > 1) continue;
-                var brightness = dot.Brightness; //* dotLifeTime;
+                var dotLifeTime = 1 - (simulationTime - dot.Time) / CRT.PhosphorGlowTime;
+                if (dotLifeTime < 0) continue;
+                if (dotLifeTime > 1) continue;
+                double brightness = dot.Brightness * dotLifeTime;
                 GL.Color4(brightness, brightness, brightness, 0.3);
-                double xPos = CRT.HPos(dot.HVolt);
-                double yPos = CRT.VPos(dot.VVolt);
-                GL.Vertex2(xPos * ScaleX, yPos * ScaleY);
-                GL.Vertex2((DeltaXT1 + xPos) * ScaleX, (DeltaYT1 + yPos) * ScaleY);
-                GL.Vertex2((DeltaXT3 + xPos) * ScaleX, (DeltaYT3 + yPos) * ScaleY);
-                GL.Vertex2((DeltaXT2 + xPos) * ScaleX, (DeltaYT2 + yPos) * ScaleY);
+                double xPos = ScaleX*CRT.HPos(dot.HVolt);
+                double yPos = ScaleY*CRT.VPos(dot.VVolt);
+                GL.Vertex2( xPos - dx, yPos + dy);
+                GL.Vertex2( xPos + dx, yPos + dy);
+                GL.Vertex2( xPos + dx, yPos - dy);
+                GL.Vertex2( xPos - dx, yPos - dy);
             }
             GL.End();
             SwapBuffers();
