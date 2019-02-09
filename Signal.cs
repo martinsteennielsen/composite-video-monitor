@@ -8,7 +8,7 @@ namespace CompositeVideoMonitor {
         double Get(double time);
     }
 
-    public class SawtoothSignal {
+    public class SawtoothSignal : ISignal {
         readonly double Frequency;
         readonly double Pi = Math.PI;
 
