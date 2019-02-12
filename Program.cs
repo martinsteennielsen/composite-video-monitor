@@ -5,7 +5,7 @@ namespace CompositeVideoMonitor {
     class Program {
         static void Main(string[] args) {
             var logger = new Logger();
-            //var timing = new PalTiming(dotSize: 20, framesPrSec: 0.3);
+            //var timing = new PalTiming(dotSize: 1, framesPrSec: 20);
             var timing = new PalTiming();
             var input = new Input(timing);
             var monitor = new VideoMonitor(timing, signal: new InputSignal(input), logger: logger);

@@ -1,8 +1,6 @@
 ﻿using NetMQ;
 using NetMQ.Sockets;
 using System.Collections.Concurrent;
-using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +10,7 @@ namespace CompositeVideoMonitor {
         readonly int PacketSize;
         readonly BlockingCollection<byte> Queue = new BlockingCollection<byte>();
 
-        public double Get() => (Queue.Take()/255.0);
+        public double Get() => (Queue.TryTake(out var val)?val/255.0:0);
 
         public Input(TimingConstants timing) {
             Timing = timing;

@@ -41,20 +41,20 @@ namespace CompositeVideoMonitor {
             Logger = logger;
             Timing = timing;
             Signal = signal;
-            TimeKeeper = new TimeKeeper(minTime: 20 * timing.DotTime, maxTime: timing.FrameTime);
+            TimeKeeper = new TimeKeeper(minTime: 0.002, maxTime: timing.FrameTime);
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
             SimulatedTime = 0;
         }
 
-        public double HPos(double volt) => 
+        public double HPos(double volt) =>
             0.5 * volt * HGain * TubeWidth / FullDeflectionVoltage;
 
-        public double VPos(double volt) => 
+        public double VPos(double volt) =>
             0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
 
-        public (double, List<FrameSection>) GetFrame() => 
+        public (double, List<FrameSection>) GetFrame() =>
             (SimulatedTime, CurrentFrame());
 
         public async Task Run(CancellationToken canceller) {
@@ -65,32 +65,39 @@ namespace CompositeVideoMonitor {
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                var section  = CalculateSection(Signal, time: simulatedTime, endTime: endTime);
-                simulatedTime = SimulatedTime = section.NewestDotTime + Timing.DotTime;
-                var newFrame = RemoveDots(CurrentFrame(), SimulatedTime);
-                newFrame.Add(section);
+                var (sections, simulatedEndTime) = CalculateSections(Signal, time: simulatedTime, endTime: endTime);
+                simulatedTime = SimulatedTime = simulatedEndTime;
+                var newFrame = RemoveDots(CurrentFrame(), simulatedTime);
+                newFrame.AddRange(sections);
                 lock (GateKeeper) {
                     Frame = newFrame;
                 }
                 Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
-                Logger.DotsPrSimulation = section.Dots.Count;
+                Logger.DotsPrSimulation = sections.Count;
             }
         }
 
-        FrameSection CalculateSection(ISignal signal, double time, double endTime) {
-            var startTime = time;
-            var dots = new List<PhosphorDot>();
+        (List<FrameSection>, double) CalculateSections(ISignal signal, double time, double endTime) {
+            var sections = new List<FrameSection>();
             while (time < endTime) {
-                dots.Add(new PhosphorDot {
-                    VVolt = VOsc.Get(time),
-                    HVolt = HOsc.Get(time),
-                    Brightness = signal.Get(time),
-                    Time = time
-                });
-                time += Timing.DotTime;
+                double startTime = time;
+                double lineTime = 0;
+                var dots = new List<PhosphorDot>();
+                while (time < endTime && lineTime < Timing.LineTime) {
+                    dots.Add(new PhosphorDot {
+                        VVolt = VOsc.Get(time),
+                        HVolt = HOsc.Get(time),
+                        Brightness = signal.Get(time),
+                        Time = time
+                    });
+                    time += Timing.DotTime;
+                    lineTime += Timing.DotTime;
+                }
+                sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime });
             }
-            return new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime };
+            return (sections, time - Timing.DotTime);
         }
+    
 
         List<FrameSection> CurrentFrame() {
             lock (GateKeeper) {
