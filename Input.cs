@@ -8,9 +8,9 @@ namespace CompositeVideoMonitor {
     public class Input {
         readonly TimingConstants Timing;
         readonly int PacketSize;
-        readonly BlockingCollection<byte> Queue = new BlockingCollection<byte>();
+        readonly ConcurrentQueue<byte> Queue = new ConcurrentQueue<byte>();
 
-        public double Get() => (Queue.TryTake(out var val)?val/255.0:0);
+        public double Get() => (Queue.IsEmpty ? 0 : Queue.TryDequeue(out var val)?val/255.0:0);
 
         public Input(TimingConstants timing) {
             Timing = timing;
@@ -25,7 +25,7 @@ namespace CompositeVideoMonitor {
                 while (!canceller.IsCancellationRequested) {
                     var buffer = sub.ReceiveFrameBytes();
                     for (int i = 0; i < buffer.Length; i++) {
-                        Queue.Add(buffer[i]);
+                        Queue.Enqueue(buffer[i]);
                     }
                 }
             }
