@@ -1,5 +1,5 @@
 ﻿namespace CompositeVideoMonitor {
-    public class TimingConstants {
+    public class Timing {
         public readonly double HFreq;
         public readonly double VFreq;
         public readonly double BandwidthFreq;
@@ -7,7 +7,7 @@
         public readonly double FrameTime;
         public readonly double LineTime;
 
-        public TimingConstants(double hFreq, double vFreq, double bandwidthFreq) {
+        public Timing(double hFreq, double vFreq, double bandwidthFreq) {
             BandwidthFreq = bandwidthFreq;
             VFreq = vFreq;
             HFreq = hFreq;
@@ -17,7 +17,7 @@
         }
     }
 
-    public class PalTiming : TimingConstants {
+    public class PalTiming : Timing {
         public PalTiming() : base(hFreq: 15625, vFreq: 50, bandwidthFreq: 5e6) {
         }
         public PalTiming(double dotSize, double framesPrSec)
