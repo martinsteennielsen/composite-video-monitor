@@ -60,9 +60,6 @@ namespace CompositeVideoMonitor {
         public async Task Run(CancellationToken canceller) {
             double simulatedTime = 0;
 
-            var timer = new Stopwatch();
-            timer.Start();
-
             while (!canceller.IsCancellationRequested) {
                 double elapsedTime = await TimeKeeper.GetElapsedTimeAsync();
                 double startTime = simulatedTime;
