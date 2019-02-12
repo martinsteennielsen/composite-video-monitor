@@ -13,32 +13,26 @@ namespace CompositeVideoMonitor {
         public double Brightness;
     }
 
-    public class PhosphorDots {
+    public class FrameSection {
         public double OldestDotTime;
         public double NewestDotTime;
         public List<PhosphorDot> Dots;
     }
 
     public class VideoMonitor {
-        readonly Timing Timing;
-        readonly SawtoothSignal VOsc;
-        readonly SawtoothSignal HOsc;
-        readonly object GateKeeper = new object();
-
         public readonly double TubeWidth = 0.4;
         public readonly double TubeHeight = 0.3;
         public readonly double PhosphorGlowTime;
 
+        readonly object GateKeeper = new object();
+        readonly Timing Timing;
+        readonly ISignal VOsc, HOsc;
         readonly double VGain = 30;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
 
-        public double HPos(double volt) => 0.5 * volt * HGain * TubeWidth / FullDeflectionVoltage;
-        public double VPos(double volt) => 0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
-
-        List<PhosphorDots> Dots = new List<PhosphorDots>();
-
-        public double SimulatedTime;
+        List<FrameSection> Frame = new List<FrameSection>();
+        private double SimulatedTime;
 
         public VideoMonitor(Timing timing) {
             Timing = timing;
@@ -47,6 +41,15 @@ namespace CompositeVideoMonitor {
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
             SimulatedTime = 0;
         }
+
+        public double HPos(double volt) => 
+            0.5 * volt * HGain * TubeWidth / FullDeflectionVoltage;
+
+        public double VPos(double volt) => 
+            0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
+
+        public (double, List<FrameSection>) GetFrame() => 
+            (SimulatedTime, CurrentFrame());
 
         public void Run(CancellationToken canceller, ISignal signal, Logger logger) {
             double simulatedTime = 0, lastTime = 0;
@@ -79,20 +82,20 @@ namespace CompositeVideoMonitor {
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                var (endOfSimulationTime, dots) = SimulateDots(signal, time: simulatedTime, endTime: endTime);
-                simulatedTime = endOfSimulationTime;
-                var newDots = RemoveDots(GetDots(), simulatedTime);
-                newDots.Add(new PhosphorDots { Dots = dots, OldestDotTime = startTime, NewestDotTime = simulatedTime });
+                var section  = CalculateSection(signal, time: simulatedTime, endTime: endTime);
+                simulatedTime = SimulatedTime = section.NewestDotTime + Timing.DotTime;
+                var newFrame = RemoveDots(CurrentFrame(), SimulatedTime);
+                newFrame.Add(section);
                 lock (GateKeeper) {
-                    Dots = newDots;
+                    Frame = newFrame;
                 }
-                SimulatedTime = simulatedTime;
                 logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
-                logger.DotsPrSimulation = dots.Count;
+                logger.DotsPrSimulation = section.Dots.Count;
             }
         }
 
-        private (double, List<PhosphorDot>) SimulateDots(ISignal signal, double time, double endTime) {
+        FrameSection CalculateSection(ISignal signal, double time, double endTime) {
+            var startTime = time;
             var dots = new List<PhosphorDot>();
             while (time < endTime) {
                 dots.Add(new PhosphorDot {
@@ -103,24 +106,24 @@ namespace CompositeVideoMonitor {
                 });
                 time += Timing.DotTime;
             }
-            return (time, dots);
+            return new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime };
         }
 
-        public List<PhosphorDots> GetDots() {
+        List<FrameSection> CurrentFrame() {
             lock (GateKeeper) {
-                return Dots.ToList();
+                return Frame.ToList();
             }
         }
 
-        private List<PhosphorDots> RemoveDots(List<PhosphorDots> dots, double time) {
+        List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {
             var dimmestDotTime = time - PhosphorGlowTime;
 
             var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime > dimmestDotTime).ToList();
             var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime <= dimmestDotTime);
 
-            var newDots = new List<PhosphorDots>();
+            var newDots = new List<FrameSection>();
             foreach (var dimmingDots in someDotsGlowing) {
-                newDots.Add(new PhosphorDots { Dots = dimmingDots.Dots.Where(x => x.Time > dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
+                newDots.Add(new FrameSection { Dots = dimmingDots.Dots.Where(x => x.Time > dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
             }
             var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime > dimmestDotTime);
             newDots.AddRange(allDotsGlowing);
