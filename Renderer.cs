@@ -7,14 +7,14 @@ using System.Linq;
 
 namespace CompositeVideoMonitor {
     public class Renderer : GameWindow {
-        readonly Timing Timing;
+        readonly TimingConstants Timing;
         readonly VideoMonitor CRT;
         readonly Logger Logger;
         readonly double ScaleX, ScaleY;
         double Focus = 1;
         readonly double DotWidth, DotHeight;
 
-        public Renderer(VideoMonitor monitor, Timing timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+        public Renderer(VideoMonitor monitor, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             CRT = monitor;
             Timing = timing;
             Logger = logger;

@@ -25,7 +25,10 @@ namespace CompositeVideoMonitor {
         public readonly double PhosphorGlowTime;
 
         readonly object GateKeeper = new object();
-        readonly Timing Timing;
+        readonly ISignal Signal;
+        readonly Logger Logger;
+        readonly TimeKeeper TimeKeeper;
+        readonly TimingConstants Timing;
         readonly ISignal VOsc, HOsc;
         readonly double VGain = 30;
         readonly double HGain = 40;
@@ -34,8 +37,11 @@ namespace CompositeVideoMonitor {
         List<FrameSection> Frame = new List<FrameSection>();
         private double SimulatedTime;
 
-        public VideoMonitor(Timing timing) {
+        public VideoMonitor(TimingConstants timing, ISignal signal, Logger logger) {
+            Logger = logger;
             Timing = timing;
+            Signal = signal;
+            TimeKeeper = new TimeKeeper(minTime: 20 * timing.DotTime, maxTime: timing.FrameTime);
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
@@ -51,46 +57,26 @@ namespace CompositeVideoMonitor {
         public (double, List<FrameSection>) GetFrame() => 
             (SimulatedTime, CurrentFrame());
 
-        public void Run(CancellationToken canceller, ISignal signal, Logger logger) {
-            double simulatedTime = 0, lastTime = 0;
+        public async Task Run(CancellationToken canceller) {
+            double simulatedTime = 0;
 
             var timer = new Stopwatch();
             timer.Start();
 
             while (!canceller.IsCancellationRequested) {
-
-                double minTime = 2 * Timing.DotTime;
-                while (timer.Elapsed.TotalSeconds - lastTime < minTime) {
-                    if (minTime > 0.001) {
-                        Task.Delay((int)(minTime * 1000)).Wait();
-                    } else {
-                        Thread.Yield();
-                    }
-                }
-
-                var tmpTime = timer.Elapsed.TotalSeconds;
-                var elapsedTime = (tmpTime - lastTime);
-                lastTime = tmpTime;
-
-                if (elapsedTime > 2.0 * Timing.FrameTime) {
-                    var skipTime = (elapsedTime - Timing.FrameTime);
-                    simulatedTime += skipTime;
-                    logger.SkippedFrames+= (int)(skipTime/ Timing.FrameTime);
-                    elapsedTime = Timing.FrameTime;
-                }
-
+                double elapsedTime = await TimeKeeper.GetElapsedTimeAsync();
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                var section  = CalculateSection(signal, time: simulatedTime, endTime: endTime);
+                var section  = CalculateSection(Signal, time: simulatedTime, endTime: endTime);
                 simulatedTime = SimulatedTime = section.NewestDotTime + Timing.DotTime;
                 var newFrame = RemoveDots(CurrentFrame(), SimulatedTime);
                 newFrame.Add(section);
                 lock (GateKeeper) {
                     Frame = newFrame;
                 }
-                logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
-                logger.DotsPrSimulation = section.Dots.Count;
+                Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
+                Logger.DotsPrSimulation = section.Dots.Count;
             }
         }
 

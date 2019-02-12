@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.168
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "composite-video-monitor", "composite-video-monitor.csproj", "{5C288487-A099-4A36-A589-7C62D3927241}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompositeVideoMonitor", "CompositeVideoMonitor.csproj", "{5C288487-A099-4A36-A589-7C62D3927241}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
