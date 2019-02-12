@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="OpenTK.NETCore" Version="*" />
+    <PackageReference Include="NetMq" Version="*" />
   </ItemGroup>
 
 </Project>

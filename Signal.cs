@@ -22,4 +22,12 @@ namespace CompositeVideoMonitor {
         Random Randomizer = new Random();
         public double Get(double time) => Randomizer.NextDouble();
     }
+
+    public class InputSignal : ISignal {
+        readonly Input Input;
+        public InputSignal(Input input) {
+            Input = input;
+        }
+        public double Get(double time) => Input.Get();
+    }
 }
