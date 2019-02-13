@@ -35,7 +35,6 @@ namespace CompositeVideoMonitor {
         readonly double FullDeflectionVoltage = 40;
 
         List<FrameSection> Frame = new List<FrameSection>();
-        private double SimulatedTime;
 
         public VideoMonitor(TimingConstants timing, ISignal signal, Logger logger) {
             Logger = logger;
@@ -45,7 +44,6 @@ namespace CompositeVideoMonitor {
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
-            SimulatedTime = 0;
         }
 
         public double HPos(double volt) =>
@@ -54,19 +52,22 @@ namespace CompositeVideoMonitor {
         public double VPos(double volt) =>
             0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
 
-        public (double, List<FrameSection>) GetFrame() =>
-            (SimulatedTime, CurrentFrame());
+        public List<FrameSection> CurrentFrame() {
+            lock (GateKeeper) {
+                return Frame.ToList();
+            }
+        }
 
         public async Task Run(CancellationToken canceller) {
             double simulatedTime = 0;
 
             while (!canceller.IsCancellationRequested) {
-                double elapsedTime = await TimeKeeper.GetElapsedTimeAsync();
+                var (elapsedTime, skipTime) = await TimeKeeper.GetElapsedTimeAsync();
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
                 var (sections, simulatedEndTime) = CalculateSections(Signal, time: simulatedTime, endTime: endTime);
-                simulatedTime = SimulatedTime = simulatedEndTime;
+                simulatedTime = simulatedEndTime;
                 var newFrame = RemoveDots(CurrentFrame(), simulatedTime);
                 newFrame.AddRange(sections);
                 lock (GateKeeper) {
@@ -74,6 +75,7 @@ namespace CompositeVideoMonitor {
                 }
                 Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
                 Logger.DotsPrSimulation = sections.Count;
+                simulatedTime += skipTime;
             }
         }
 
@@ -96,13 +98,6 @@ namespace CompositeVideoMonitor {
                 sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime });
             }
             return (sections, time - Timing.DotTime);
-        }
-    
-
-        List<FrameSection> CurrentFrame() {
-            lock (GateKeeper) {
-                return Frame.ToList();
-            }
         }
 
         List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {

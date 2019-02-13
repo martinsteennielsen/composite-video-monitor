@@ -2,36 +2,34 @@
 using NetMQ.Sockets;
 using System;
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
-    public class Input : IDisposable {
-        readonly TimingConstants Timing;
-        readonly int PacketSize;
+
+    public class Input : ISignal, IDisposable {
         readonly ConcurrentQueue<byte> Queue = new ConcurrentQueue<byte>();
         readonly SubscriberSocket Subscriber;
         readonly NetMQPoller Poller;
-        public double Get() {
+
+        public double Get(double _) {
             if (Queue.IsEmpty) { return 0.4; }
-            byte val;
-            while (!Queue.TryDequeue(out val));
-            return val / 255.0;
+            byte signalValue;
+            while (!Queue.TryDequeue(out signalValue));
+            return signalValue / 255.0;
         }
 
-        public Input(TimingConstants timing) {
+        public Input(string address) {
             Poller = new NetMQPoller();
-            Timing = timing;
-            PacketSize = (int)(timing.LineTime / timing.DotTime);
+
             Subscriber = new SubscriberSocket();
-            Subscriber.SubscribeToAnyTopic();
-            Subscriber.ReceiveReady += Subscriber_ReceiveReady;
-            Subscriber.Connect("tcp://127.0.0.1:10001");
             Poller.Add(Subscriber);
             Poller.RunAsync();
+
+            Subscriber.SubscribeToAnyTopic();
+            Subscriber.ReceiveReady += ReceiveReady;
+            Subscriber.Connect(address);
         }
 
-        private void Subscriber_ReceiveReady(object sender, NetMQSocketEventArgs e) {
+        private void ReceiveReady(object _, NetMQSocketEventArgs __) {
             while (Subscriber.TryReceiveFrameBytes(out var buffer)) {
                 for (int i = 0; i < buffer.Length; i++) {
                     Queue.Enqueue(buffer[i]);
@@ -40,7 +38,7 @@ namespace CompositeVideoMonitor {
         }
 
         public void Dispose() {
-            Subscriber.ReceiveReady -= Subscriber_ReceiveReady;
+            Subscriber.ReceiveReady -= ReceiveReady;
             Poller.Remove(Subscriber);
             Poller.Dispose();
             Subscriber.Dispose();

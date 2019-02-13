@@ -17,17 +17,4 @@ namespace CompositeVideoMonitor {
         }
         public double Get(double time) => 2.0 / Pi * (Frequency * Pi * (time % (1.0 / Frequency)) - (Pi / 2.0));
     }
-
-    public class NoiseSignal : ISignal {
-        Random Randomizer = new Random();
-        public double Get(double time) => Randomizer.NextDouble();
-    }
-
-    public class InputSignal : ISignal {
-        readonly Input Input;
-        public InputSignal(Input input) {
-            Input = input;
-        }
-        public double Get(double time) => Input.Get();
-    }
 }
