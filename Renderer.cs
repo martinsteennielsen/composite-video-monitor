@@ -49,12 +49,12 @@ namespace CompositeVideoMonitor {
             foreach (var dot in frame.SelectMany(x => x.Dots)) {
                 double brightness = dot.Brightness;
                 GL.Color3(brightness, brightness, brightness);
-                double xPos =   ScaleX * CRT.HPos(dot.HVolt);
-                double yPos = - ScaleY  *CRT.VPos(dot.VVolt);
-                GL.Vertex2( xPos - DotWidth, yPos + DotHeight);
-                GL.Vertex2( xPos + DotWidth, yPos + DotHeight);
-                GL.Vertex2( xPos + DotWidth, yPos - DotHeight);
-                GL.Vertex2( xPos - DotWidth, yPos - DotHeight);
+                double xPos = ScaleX * CRT.HPos(dot.HVolt);
+                double yPos = -ScaleY * CRT.VPos(dot.VVolt);
+                GL.Vertex2(xPos - DotWidth, yPos + DotHeight);
+                GL.Vertex2(xPos + DotWidth, yPos + DotHeight);
+                GL.Vertex2(xPos + DotWidth, yPos - DotHeight);
+                GL.Vertex2(xPos - DotWidth, yPos - DotHeight);
             }
             GL.End();
 
