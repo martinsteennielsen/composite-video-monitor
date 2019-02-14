@@ -42,6 +42,7 @@ namespace CompositeVideoMonitor {
             Poller.Remove(Subscriber);
             Poller.Dispose();
             Subscriber.Dispose();
+            NetMQConfig.Cleanup(block: false);
         }
     }
 }

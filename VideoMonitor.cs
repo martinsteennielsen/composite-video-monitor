@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,7 +38,7 @@ namespace CompositeVideoMonitor {
             Logger = logger;
             Timing = timing;
             Signal = signal;
-            TimeKeeper = new TimeKeeper(minTime: 0.001, maxTime: timing.FrameTime);
+            TimeKeeper = new TimeKeeper(minTime: 50*timing.LineTime, maxTime: timing.FrameTime);
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);

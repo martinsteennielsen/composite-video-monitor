@@ -1,6 +1,5 @@
-﻿using System.Threading.Tasks;
-using System.Threading;
-using NetMQ;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
     class Program {
@@ -16,13 +15,11 @@ namespace CompositeVideoMonitor {
                 var monitor = new VideoMonitor(timing, signal: compositeInput, logger: logger);
                 Task.Run(() => logger.Run(canceller.Token));
                 Task.Run(() => monitor.Run(canceller.Token));
-                using (Renderer renderer = new Renderer(monitor, timing, logger, 600, 600, "PAL")) {
+                using (var renderer = new Renderer(monitor, timing, logger, 600, 600, "PAL")) {
                     renderer.Run();
                 }
                 canceller.Cancel();
             }
-
-            NetMQConfig.Cleanup(block: false);
         }
     }
 }
