@@ -19,12 +19,12 @@ namespace CompositeVideoMonitor {
             Timing = timing;
             Logger = logger;
 
-            var hOsc  = new SawtoothSignal(frequency: timing.HFreq, phase: 0);
-            var vOsc  = new SawtoothSignal(frequency: timing.VFreq, phase: 0);
-            ScaleX    = 2.0 / CRT.TubeWidth;
-            ScaleY    = 2.0 / CRT.TubeHeight;
-            DotWidth  = 0.5 * ScaleX * ( CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0)) );
-            DotHeight = 0.5 * ScaleY * ( CRT.VPos(vOsc.Get(Timing.LineTime)) - CRT.VPos(vOsc.Get(0)) );
+            var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: 0);
+            var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: 0);
+            ScaleX = 2.0 / CRT.TubeWidth;
+            ScaleY = 2.0 / CRT.TubeHeight;
+            DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0)));
+            DotHeight = 0.5 * ScaleY * (CRT.VPos(vOsc.Get(Timing.LineTime)) - CRT.VPos(vOsc.Get(0)));
 
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactorSrc.SrcColor, BlendingFactorDest.DstColor);

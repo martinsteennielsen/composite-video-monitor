@@ -5,6 +5,11 @@ namespace CompositeVideoMonitor {
         double Get(double time);
     }
 
+    public class NoiseSignal : ISignal {
+        Random Randomizer = new Random();
+        public double Get(double time) => Randomizer.NextDouble();
+    }
+
     public class SawtoothSignal : ISignal {
         readonly double Frequency;
         readonly double Pi = Math.PI;

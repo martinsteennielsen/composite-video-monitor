@@ -38,7 +38,7 @@ namespace CompositeVideoMonitor {
             Logger = logger;
             Timing = timing;
             Signal = signal;
-            TimeKeeper = new TimeKeeper(minTime: 50*timing.LineTime, maxTime: timing.FrameTime);
+            TimeKeeper = new TimeKeeper(minTime: 50 * timing.LineTime, maxTime: timing.FrameTime);
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);

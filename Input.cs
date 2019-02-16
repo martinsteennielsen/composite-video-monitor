@@ -10,10 +10,12 @@ namespace CompositeVideoMonitor {
         readonly SubscriberSocket Subscriber;
         readonly NetMQPoller Poller;
 
-        public double Get(double _) {
-            if (Queue.IsEmpty) { return 0.4; }
+        readonly ISignal Noise = new NoiseSignal();
+
+        public double Get(double time) {
+            if (Queue.IsEmpty) { return Noise.Get(time); }
             byte signalValue;
-            while (!Queue.TryDequeue(out signalValue));
+            while (!Queue.TryDequeue(out signalValue)) ;
             return signalValue / 255.0;
         }
 
