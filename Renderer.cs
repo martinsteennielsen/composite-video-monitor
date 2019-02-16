@@ -24,8 +24,8 @@ namespace CompositeVideoMonitor {
 
             var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: 0);
             var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: 0);
-            ScaleX = 2.0 / CRT.TubeWidth;
-            ScaleY = 2.0 / CRT.TubeHeight;
+            ScaleX = 2.0 / VideoMonitor.TubeWidth;
+            ScaleY = 2.0 / VideoMonitor.TubeHeight;
             DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0)));
             DotHeight = 0.5 * ScaleY * (CRT.VPos(vOsc.Get(Timing.LineTime)) - CRT.VPos(vOsc.Get(0)));
 
@@ -35,7 +35,7 @@ namespace CompositeVideoMonitor {
         }
 
         private void OnKeyDown(object sender, KeyboardKeyEventArgs e) {
-            if (e.Key == Key.Escape) {
+            if (!Controls.ProcessKey(e)) {
                 Exit();
             }
         }
@@ -52,8 +52,8 @@ namespace CompositeVideoMonitor {
             foreach (var dot in frame.SelectMany(x => x.Dots)) {
                 double brightness = dot.Brightness;
                 GL.Color3(brightness, brightness, brightness);
-                double xPos = ScaleX * CRT.HPos(dot.HVolt);
-                double yPos = -ScaleY * CRT.VPos(dot.VVolt);
+                double xPos = ScaleX * (Controls.TubeViewX + CRT.HPos(dot.HVolt));
+                double yPos = -ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
                 GL.Vertex2(xPos - DotWidth, yPos + DotHeight);
                 GL.Vertex2(xPos + DotWidth, yPos + DotHeight);
                 GL.Vertex2(xPos + DotWidth, yPos - DotHeight);
