@@ -4,19 +4,21 @@ using System.Threading.Tasks;
 namespace CompositeVideoMonitor {
 
     public class TimeKeeper {
+        public readonly double ZoomTime;
         readonly Stopwatch StopWatch;
         readonly double MinTime, MaxTime;
 
-        public TimeKeeper(double minTime, double maxTime) {
-            MinTime = minTime;
-            MaxTime = maxTime;
+        public TimeKeeper(double zoomTime, double minTime, double maxTime) {
+            MinTime = minTime * zoomTime;
+            MaxTime = maxTime * zoomTime;
             StopWatch = new Stopwatch();
+            ZoomTime = zoomTime;
             StopWatch.Start();
         }
 
         async Task Sleep() {
-            if (MinTime > 0.001) {
-                await Task.Delay((int)(MinTime * 1000));
+            if (MinTime / ZoomTime > 0.001) {
+                await Task.Delay((int)(1000d * MinTime / ZoomTime));
             } else {
                 await Task.Yield();
             }
@@ -24,12 +26,11 @@ namespace CompositeVideoMonitor {
 
         double SimulatedTime = 0;
         public async Task<(double elapsedTime, double skippedTime)> GetElapsedTimeAsync() {
-
-            while (StopWatch.Elapsed.TotalSeconds - SimulatedTime < MinTime) {
+            while (ZoomTime * StopWatch.Elapsed.TotalSeconds - SimulatedTime < MinTime) {
                 await Sleep();
             }
 
-            var currentTime = StopWatch.Elapsed.TotalSeconds;
+            var currentTime = ZoomTime * StopWatch.Elapsed.TotalSeconds;
             var elapsedTime = (currentTime - SimulatedTime);
             SimulatedTime = currentTime;
 

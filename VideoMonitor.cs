@@ -25,7 +25,7 @@ namespace CompositeVideoMonitor {
         readonly object GateKeeper = new object();
         readonly ISignal Signal;
         readonly Logger Logger;
-        readonly TimeKeeper TimeKeeper;
+        readonly Controls Controls;
         readonly TimingConstants Timing;
         readonly ISignal VOsc, HOsc;
         readonly double VGain = 30;
@@ -34,11 +34,11 @@ namespace CompositeVideoMonitor {
 
         List<FrameSection> Frame = new List<FrameSection>();
 
-        public VideoMonitor(TimingConstants timing, ISignal signal, Logger logger) {
+        public VideoMonitor(Controls controls, TimingConstants timing, ISignal signal, Logger logger) {
             Logger = logger;
             Timing = timing;
             Signal = signal;
-            TimeKeeper = new TimeKeeper(minTime: 50 * timing.LineTime, maxTime: timing.FrameTime);
+            Controls = controls;
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
@@ -59,8 +59,13 @@ namespace CompositeVideoMonitor {
         public async Task Run(CancellationToken canceller) {
             double simulatedTime = 0;
 
+            TimeKeeper timeKeeper = new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
             while (!canceller.IsCancellationRequested) {
-                var (elapsedTime, skipTime) = await TimeKeeper.GetElapsedTimeAsync();
+                if (timeKeeper.ZoomTime != Controls.ZoomT) {
+                    timeKeeper = new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
+                }
+
+                var (elapsedTime, skipTime) = await timeKeeper.GetElapsedTimeAsync();
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
