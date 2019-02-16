@@ -11,13 +11,16 @@ namespace CompositeVideoMonitor {
         readonly TimingConstants Timing;
         readonly VideoMonitor CRT;
         readonly Logger Logger;
+        readonly Controls Controls;
+
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight;
 
-        public Renderer(VideoMonitor monitor, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+        public Renderer(Controls controls, VideoMonitor monitor, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             CRT = monitor;
             Timing = timing;
             Logger = logger;
+            Controls = controls;
 
             var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: 0);
             var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: 0);
