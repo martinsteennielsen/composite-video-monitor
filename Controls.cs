@@ -19,6 +19,10 @@ namespace CompositeVideoMonitor {
                 TubeViewY -= ds;
             } else if (e.Key == Key.Y && !e.Shift) {
                 TubeViewY += ds;
+            } else if (e.Key == Key.Z && e.Shift) {
+                TubeViewSize *= 1.05;
+            } else if (e.Key == Key.Z && !e.Shift) {
+                TubeViewSize /= 1.05;
             }
             return true;
         }
