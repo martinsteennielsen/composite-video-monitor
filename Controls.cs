@@ -5,7 +5,7 @@ using OpenTK.Input;
 namespace CompositeVideoMonitor {
 
     public class Controls {
-        public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = VideoMonitor.TubeWidth, ZoomT = 1;
+        public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = VideoMonitor.TubeWidth, Focus = 1, ZoomT = 1;
 
         public bool ProcessKey(KeyboardKeyEventArgs e) {
             double ds = TubeViewSize * 0.05;
@@ -23,6 +23,10 @@ namespace CompositeVideoMonitor {
                 TubeViewSize *= 1.05;
             } else if (e.Key == Key.Z && !e.Shift) {
                 TubeViewSize /= 1.05;
+            } else if (e.Key == Key.F && e.Shift) {
+                Focus *= 1.05;
+            } else if (e.Key == Key.F && !e.Shift) {
+                Focus /= 1.05;
             }
             return true;
         }

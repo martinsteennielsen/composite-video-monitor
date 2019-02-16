@@ -55,8 +55,8 @@ namespace CompositeVideoMonitor {
                 double z = VideoMonitor.TubeWidth / Controls.TubeViewSize;
                 double xPos = z * ScaleX * (Controls.TubeViewX + CRT.HPos(dot.HVolt));
                 double yPos = -z * ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
-                double dotWidth = DotWidth * z;
-                double dotHeight = DotHeight * z;
+                double dotWidth = Controls.Focus * DotWidth * z;
+                double dotHeight = Controls.Focus * DotHeight * z;
                 GL.Vertex2(xPos - dotWidth, yPos + dotHeight);
                 GL.Vertex2(xPos + dotWidth, yPos + dotHeight);
                 GL.Vertex2(xPos + dotWidth, yPos - dotHeight);
