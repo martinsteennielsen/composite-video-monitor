@@ -28,6 +28,7 @@ namespace CompositeVideoMonitor {
         readonly Controls Controls;
         readonly TimingConstants Timing;
         readonly ISignal VOsc, HOsc;
+        readonly TimeKeeper TimeKeeper;
         readonly double VGain = 30;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
@@ -42,6 +43,7 @@ namespace CompositeVideoMonitor {
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = 1.0 / (Timing.VFreq);
+            TimeKeeper = new TimeKeeper(Timing, Controls);
         }
 
         public double HPos(double volt) =>
@@ -60,16 +62,8 @@ namespace CompositeVideoMonitor {
             double simulatedTime = 0;
             double lastZoomT = Controls.ZoomT;
 
-            ITimeKeeper timeKeeper = new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
             while (!canceller.IsCancellationRequested) {
-                if (lastZoomT != Controls.ZoomT) {
-                    timeKeeper = Controls.ZoomT == 0d
-                        ? new StoppedTime() as ITimeKeeper
-                        : new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
-                    lastZoomT = Controls.ZoomT;
-                }
-
-                var (elapsedTime, skipTime) = await timeKeeper.GetElapsedTimeAsync();
+                var elapsedTime = await TimeKeeper.GetElapsedTimeAsync();
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
@@ -82,7 +76,6 @@ namespace CompositeVideoMonitor {
                 }
                 Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
                 Logger.DotsPrSimulation = sections.Count;
-                simulatedTime += skipTime;
             }
         }
 
@@ -104,7 +97,7 @@ namespace CompositeVideoMonitor {
                 }
                 sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime });
             }
-            return (sections, time - Timing.DotTime);
+            return (sections, time);
         }
 
         List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {

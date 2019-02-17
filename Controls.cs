@@ -5,9 +5,10 @@ using OpenTK.Input;
 namespace CompositeVideoMonitor {
 
     public class Controls {
-        public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = VideoMonitor.TubeWidth, Focus = 1, ZoomT = 0.001;
+        public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = VideoMonitor.TubeWidth, Focus = 1, ZoomT = 1;
         double? ZoomTStop;
         bool FollowCursor = false;
+        int CurrentSingleStep = 0;
 
         public bool ProcessKey(KeyboardKeyEventArgs e) {
             double ds = TubeViewSize * 0.05;
@@ -37,13 +38,27 @@ namespace CompositeVideoMonitor {
                 (ZoomT, ZoomTStop) = ZoomTStop == null ? (0d, (double?)ZoomT) : (ZoomTStop.Value, null);
             } else if (e.Key == Key.C) {
                 FollowCursor = !FollowCursor;
+            } else if (e.Key == Key.Space) {
+                CurrentSingleStep = 1;
+            } else if (e.Key == Key.End) {
+                FollowCursor = false;
+                TubeViewSize = VideoMonitor.TubeWidth;
+                TubeViewX = 0;
+                TubeViewY = 0;
+                ZoomT = 1;
             }
             return true;
         }
 
+        public int SingleStep() {
+            int step = CurrentSingleStep;
+            CurrentSingleStep = 0;
+            return step;
+        }
+
         internal void ProcessPosition(double cursorX, double cursorY) {
             if (FollowCursor) {
-                (TubeViewX, TubeViewY) = (TubeViewX, -cursorY);
+                (TubeViewX, TubeViewY) = (-cursorX, -cursorY);
             }
         }
     }

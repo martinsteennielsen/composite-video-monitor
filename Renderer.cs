@@ -46,15 +46,15 @@ namespace CompositeVideoMonitor {
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
 
-            var frame = CRT.CurrentFrame();
+            var allDots = CRT.CurrentFrame().SelectMany(x => x.Dots).ToList();
+            if (!allDots.Any()) { return; }
 
             GL.Begin(PrimitiveType.Quads);
-            var allDots = frame.SelectMany(x => x.Dots).ToList();
             PhosphorDot last = allDots.Last();
             Controls.ProcessPosition(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt));
             GL.Color4(1d, 0d, 0d, 0.7);
             RenderDot(last, Controls.Focus * 1.2);
-            foreach (var dot in frame.SelectMany(x => x.Dots)) {
+            foreach (var dot in allDots) {
                 GL.Color3(dot.Brightness, dot.Brightness, dot.Brightness);
                 RenderDot(dot, Controls.Focus);
             }
@@ -62,7 +62,7 @@ namespace CompositeVideoMonitor {
 
             SwapBuffers();
 
-            Logger.DotCount = frame.Sum(x => x.Dots.Count);
+            Logger.DotCount = allDots.Count;
             Logger.FramesPrSecond = 1.0 / e.Time;
         }
 

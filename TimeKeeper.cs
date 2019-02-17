@@ -3,52 +3,32 @@ using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
 
-    public interface ITimeKeeper {
-        Task<(double elapsedTime, double skippedTime)> GetElapsedTimeAsync();
-    }
+    public class TimeKeeper {
+        private const int MinimumTaskWaitTimeMs = 5;
+        readonly TimingConstants Timing;
+        readonly Controls Controls;
 
-    public class StoppedTime : ITimeKeeper {
-        public async Task<(double elapsedTime, double skippedTime)> GetElapsedTimeAsync() {
-            await Task.Delay(300);
-            return (0, 0);
-        }
-    }
-
-    public class TimeKeeper : ITimeKeeper {
-        public readonly double ZoomTime;
-        readonly Stopwatch StopWatch;
-        readonly double MinTime, MaxTime;
-
-        public TimeKeeper(double zoomTime, double minTime, double maxTime) {
-            MinTime = minTime * zoomTime;
-            MaxTime = maxTime * zoomTime;
-            StopWatch = new Stopwatch();
-            ZoomTime = zoomTime;
-            StopWatch.Start();
+        public TimeKeeper(TimingConstants timing, Controls controls) {
+            Timing = timing;
+            Controls = controls;
         }
 
-        async Task Sleep() {
-            if (MinTime / ZoomTime > 0.001) {
-                await Task.Delay((int)(1000d * MinTime / ZoomTime));
+        public async Task<double> GetElapsedTimeAsync() {
+            double simulatedDotTime = 1d / Timing.BandwidthFreq;
+            if (Controls.ZoomT == 0) {
+                await Task.Delay(200);
+                var step = Controls.SingleStep();
+                return step * simulatedDotTime;
             } else {
-                await Task.Yield();
-            }
-        }
-
-        double SimulatedTime = 0;
-        public async Task<(double elapsedTime, double skippedTime)> GetElapsedTimeAsync() {
-            while (ZoomTime * StopWatch.Elapsed.TotalSeconds - SimulatedTime < MinTime) {
-                await Sleep();
-            }
-
-            var currentTime = ZoomTime * StopWatch.Elapsed.TotalSeconds;
-            var elapsedTime = (currentTime - SimulatedTime);
-            SimulatedTime = currentTime;
-
-            if (elapsedTime > MaxTime) {
-                return (elapsedTime: MaxTime, skippedTime: (elapsedTime - MaxTime));
-            } else {
-                return (elapsedTime, 0);
+                double realDotTime = simulatedDotTime / Controls.ZoomT;
+                double dotsPrSimulation = 0.005 / realDotTime;
+                if (dotsPrSimulation < 1) {
+                    await Task.Delay((int)(MinimumTaskWaitTimeMs / dotsPrSimulation));
+                    return simulatedDotTime;
+                } else {
+                    await Task.Delay(MinimumTaskWaitTimeMs);
+                    return dotsPrSimulation * simulatedDotTime;
+                }
             }
         }
     }
