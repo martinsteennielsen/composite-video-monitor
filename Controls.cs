@@ -7,6 +7,7 @@ namespace CompositeVideoMonitor {
     public class Controls {
         public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = VideoMonitor.TubeWidth, Focus = 1, ZoomT = 1;
         double? ZoomTStop;
+        public bool Cursor = false;
         bool FollowCursor = false;
         int CurrentSingleStep = 0;
 
@@ -37,10 +38,13 @@ namespace CompositeVideoMonitor {
             } else if (e.Key == Key.S) {
                 (ZoomT, ZoomTStop) = ZoomTStop == null ? (0d, (double?)ZoomT) : (ZoomTStop.Value, null);
             } else if (e.Key == Key.C) {
+                Cursor = true;
                 FollowCursor = !FollowCursor;
             } else if (e.Key == Key.Space) {
+                Cursor = true;
                 CurrentSingleStep = 1;
             } else if (e.Key == Key.End) {
+                Cursor = false;
                 FollowCursor = false;
                 TubeViewSize = VideoMonitor.TubeWidth;
                 TubeViewX = 0;
