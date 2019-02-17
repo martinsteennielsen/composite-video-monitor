@@ -50,11 +50,17 @@ namespace CompositeVideoMonitor {
             if (!allDots.Any()) { return; }
 
             GL.Begin(PrimitiveType.Quads);
+            PhosphorDot first = allDots.First();
+            Controls.ProcessPosition(CRT.HPos(first.HVolt), CRT.VPos(first.VVolt));
+            GL.Color4(0d, 01d, 0d, 0.1d);
+            RenderDot(first, Controls.Focus * 1.4);
+
             PhosphorDot last = allDots.Last();
             Controls.ProcessPosition(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt));
-            GL.Color4(1d, 0d, 0d, 0.7);
-            RenderDot(last, Controls.Focus * 1.2);
-            foreach (var dot in allDots) {
+            GL.Color4(1d, 0d, 0d, 0.1d);
+            RenderDot(last, Controls.Focus * 1.4);
+
+            foreach (var dot in allDots.Skip(1).Take(allDots.Count - 2)) {
                 GL.Color3(dot.Brightness, dot.Brightness, dot.Brightness);
                 RenderDot(dot, Controls.Focus);
             }

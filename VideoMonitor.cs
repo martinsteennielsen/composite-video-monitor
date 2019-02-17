@@ -42,7 +42,7 @@ namespace CompositeVideoMonitor {
             Controls = controls;
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
-            PhosphorGlowTime = 1.0 / (Timing.VFreq);
+            PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
             TimeKeeper = new TimeKeeper(Timing, Controls);
         }
 
