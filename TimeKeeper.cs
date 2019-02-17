@@ -3,7 +3,18 @@ using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
 
-    public class TimeKeeper {
+    public interface ITimeKeeper {
+        Task<(double elapsedTime, double skippedTime)> GetElapsedTimeAsync();
+    }
+
+    public class StoppedTime : ITimeKeeper {
+        public async Task<(double elapsedTime, double skippedTime)> GetElapsedTimeAsync() {
+            await Task.Delay(300);
+            return (0, 0);
+        }
+    }
+
+    public class TimeKeeper : ITimeKeeper {
         public readonly double ZoomTime;
         readonly Stopwatch StopWatch;
         readonly double MinTime, MaxTime;

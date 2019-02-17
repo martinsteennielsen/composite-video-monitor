@@ -58,11 +58,15 @@ namespace CompositeVideoMonitor {
 
         public async Task Run(CancellationToken canceller) {
             double simulatedTime = 0;
+            double lastZoomT = Controls.ZoomT;
 
-            TimeKeeper timeKeeper = new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
+            ITimeKeeper timeKeeper = new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
             while (!canceller.IsCancellationRequested) {
-                if (timeKeeper.ZoomTime != Controls.ZoomT) {
-                    timeKeeper = new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
+                if (lastZoomT != Controls.ZoomT) {
+                    timeKeeper = Controls.ZoomT == 0d
+                        ? new StoppedTime() as ITimeKeeper
+                        : new TimeKeeper(zoomTime: Controls.ZoomT, minTime: 50 * Timing.LineTime, maxTime: Timing.FrameTime);
+                    lastZoomT = Controls.ZoomT;
                 }
 
                 var (elapsedTime, skipTime) = await timeKeeper.GetElapsedTimeAsync();
