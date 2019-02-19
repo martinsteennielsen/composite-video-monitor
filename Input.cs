@@ -5,18 +5,21 @@ using System.Collections.Concurrent;
 
 namespace CompositeVideoMonitor {
 
-    public class Input : ISignal, IDisposable {
+    public class Input : IDisposable {
         readonly ConcurrentQueue<byte> Queue = new ConcurrentQueue<byte>();
         readonly SubscriberSocket Subscriber;
         readonly NetMQPoller Poller;
         readonly Controls Controls;
         readonly ISignal Noise = new NoiseSignal();
+        readonly FilterLowPass50Hz VSync = new FilterLowPass50Hz();
+        readonly FilterBandPass15625Hz HSync = new FilterBandPass15625Hz();
 
-        public double Get(double time) {
-            if (Queue.IsEmpty) { return Noise.Get(time); }
+        public (double, double, double) Get(double time) {
+            if (Queue.IsEmpty) { return (Noise.Get(time),0,0); }
             byte signalValue;
             while (!Queue.TryDequeue(out signalValue)) ;
-            return signalValue / 255.0;
+            double value = signalValue / 255.0;
+            return (value, VSync.Get(value), HSync.Get(value));
         }
 
         public Input(Controls controls, string address) {

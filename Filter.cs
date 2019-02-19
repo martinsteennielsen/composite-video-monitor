@@ -21,7 +21,7 @@ namespace CompositeVideoMonitor {
         }
     }
 
-    public class BandPass15625Hz {
+    public class FilterBandPass15625Hz {
         double[] xv = new double[4];
         double[] yv = new double[5];
 

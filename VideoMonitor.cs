@@ -23,7 +23,7 @@ namespace CompositeVideoMonitor {
         public readonly double PhosphorGlowTime;
 
         readonly object GateKeeper = new object();
-        readonly ISignal Signal;
+        readonly Input Input;
         readonly Logger Logger;
         readonly Controls Controls;
         readonly TimingConstants Timing;
@@ -35,10 +35,10 @@ namespace CompositeVideoMonitor {
 
         List<FrameSection> Frame = new List<FrameSection>();
 
-        public VideoMonitor(Controls controls, TimingConstants timing, ISignal signal, Logger logger) {
+        public VideoMonitor(Controls controls, TimingConstants timing, Input input, Logger logger) {
             Logger = logger;
             Timing = timing;
-            Signal = signal;
+            Input=input;
             Controls = controls;
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
@@ -67,7 +67,7 @@ namespace CompositeVideoMonitor {
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                var (sections, simulatedEndTime) = CalculateSections(Signal, time: simulatedTime, endTime: endTime);
+                var (sections, simulatedEndTime) = CalculateSections(Input, time: simulatedTime, endTime: endTime);
                 simulatedTime = simulatedEndTime;
                 var newFrame = RemoveDots(CurrentFrame(), simulatedTime);
                 newFrame.AddRange(sections);
@@ -79,17 +79,18 @@ namespace CompositeVideoMonitor {
             }
         }
 
-        (List<FrameSection>, double) CalculateSections(ISignal signal, double time, double endTime) {
+        (List<FrameSection>, double) CalculateSections(Input signal, double time, double endTime) {
             var sections = new List<FrameSection>();
             while (time < endTime) {
                 double startTime = time;
                 double lineTime = 0;
                 var dots = new List<PhosphorDot>();
                 while (time < endTime && lineTime < Timing.LineTime) {
+                    var (brightness, vsync, hsync) = signal.Get(time);
                     dots.Add(new PhosphorDot {
                         VVolt = VOsc.Get(time),
                         HVolt = HOsc.Get(time),
-                        Brightness = signal.Get(time),
+                        Brightness = brightness * vsync,
                         Time = time
                     });
                     time += Timing.DotTime;
