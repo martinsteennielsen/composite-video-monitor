@@ -90,7 +90,7 @@ namespace CompositeVideoMonitor {
                     dots.Add(new PhosphorDot {
                         VVolt = VOsc.Get(time),
                         HVolt = HOsc.Get(time),
-                        Brightness = brightness * vsync,
+                        Brightness = brightness * (80 * hsync),//4*vsync, ,
                         Time = time
                     });
                     time += Timing.DotTime;

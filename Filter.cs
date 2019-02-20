@@ -8,7 +8,7 @@ namespace CompositeVideoMonitor {
     /* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher*/
 
     public class FilterLowPass50Hz {
-        double[] xv = new double[1];
+        double[] xv = new double[2];
         double[] yv = new double[2];
 
         public double Get(double input) {
@@ -22,7 +22,7 @@ namespace CompositeVideoMonitor {
     }
 
     public class FilterBandPass15625Hz {
-        double[] xv = new double[4];
+        double[] xv = new double[5];
         double[] yv = new double[5];
 
         public double Get(double input) {

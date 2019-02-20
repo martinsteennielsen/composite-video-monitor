@@ -19,7 +19,7 @@ namespace CompositeVideoMonitor {
             byte signalValue;
             while (!Queue.TryDequeue(out signalValue)) ;
             double value = signalValue / 255.0;
-            return (value, VSync.Get(value), HSync.Get(value));
+            return (value, VSync.Get(value==0?0:1), HSync.Get(value==0?0:1));
         }
 
         public Input(Controls controls, string address) {
