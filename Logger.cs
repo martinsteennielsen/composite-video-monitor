@@ -9,11 +9,11 @@ namespace CompositeVideoMonitor {
         public double FramesPrSecond { get; set; }
         public int DotsPrSimulation { get; set; }
         public int DotCount { get; set; }
-        public int SkippedFrames { get; set; }
+        public double SkippedTime { get; set; }
 
         public async Task Run(CancellationToken canceller) {
             while (!canceller.IsCancellationRequested) {
-                Console.WriteLine($"FPS:{FramesPrSecond,5:F2} SPF:{SimulationsPrFrame,7:F2} DPS:{DotsPrSimulation,6} Dots:{DotCount,7}, Skipped frames:{SkippedFrames}");
+                Console.WriteLine($"FPS:{FramesPrSecond,5:F2} SPF:{SimulationsPrFrame,7:F2} DPS:{DotsPrSimulation,6} Dots:{DotCount,7}, Skipped time:{SkippedTime}");
                 await Task.Delay(100);
             }
         }

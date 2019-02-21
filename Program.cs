@@ -14,7 +14,7 @@ namespace CompositeVideoMonitor {
 
             using (var compositeInput = new Input(controls, address: "tcp://127.0.0.1:10001")) {
                 Task.Run(() => logger.Run(canceller.Token));
-                var monitor = new VideoMonitor(controls, timing, signal: compositeInput, logger: logger);
+                var monitor = new VideoMonitor(controls, timing, compositeInput: compositeInput, logger: logger);
                 Task.Run(() => monitor.Run(canceller.Token));
                 using (var renderer = new Renderer(controls, monitor, timing, logger, 600, 600, "PAL")) {
                     renderer.Run();

@@ -23,7 +23,7 @@ namespace CompositeVideoMonitor {
         public readonly double PhosphorGlowTime;
 
         readonly object GateKeeper = new object();
-        readonly ISignal Signal;
+        readonly Input CompositeInput;
         readonly Logger Logger;
         readonly Controls Controls;
         readonly TimingConstants Timing;
@@ -35,10 +35,10 @@ namespace CompositeVideoMonitor {
 
         List<FrameSection> Frame = new List<FrameSection>();
 
-        public VideoMonitor(Controls controls, TimingConstants timing, ISignal signal, Logger logger) {
+        public VideoMonitor(Controls controls, TimingConstants timing, Input compositeInput, Logger logger) {
             Logger = logger;
             Timing = timing;
-            Signal = signal;
+            CompositeInput = compositeInput;
             Controls = controls;
             VOsc = new SawtoothSignal(timing.VFreq, 0);
             HOsc = new SawtoothSignal(timing.HFreq, 0);
@@ -63,11 +63,13 @@ namespace CompositeVideoMonitor {
             double lastZoomT = Controls.ZoomT;
 
             while (!canceller.IsCancellationRequested) {
-                var elapsedTime = await TimeKeeper.GetElapsedTimeAsync();
+                var (elapsedTime, skippedTime) = await TimeKeeper.GetElapsedTimeAsync();
+                CompositeInput.Skip(skippedTime);
+
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                var (sections, simulatedEndTime) = CalculateSections(Signal, time: simulatedTime, endTime: endTime);
+                var (sections, simulatedEndTime) = CalculateSections(CompositeInput, time: simulatedTime, endTime: endTime);
                 simulatedTime = simulatedEndTime;
                 var newFrame = RemoveDots(CurrentFrame(), simulatedTime);
                 newFrame.AddRange(sections);
@@ -79,7 +81,7 @@ namespace CompositeVideoMonitor {
             }
         }
 
-        (List<FrameSection>, double) CalculateSections(ISignal signal, double time, double endTime) {
+        (List<FrameSection>, double) CalculateSections(Input signal, double time, double endTime) {
             var sections = new List<FrameSection>();
             while (time < endTime) {
                 double startTime = time;

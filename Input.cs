@@ -47,5 +47,9 @@ namespace CompositeVideoMonitor {
             Subscriber.Dispose();
             NetMQConfig.Cleanup(block: false);
         }
+
+        internal void Skip(double skipped) {
+            // TODO
+        }
     }
 }
