@@ -9,6 +9,9 @@ namespace CompositeVideoMonitor {
         public double HVolt;
         public double Time;
         public double Brightness;
+        public double hs;
+        public double hs2;
+        public double sync;
     }
 
     public class FrameSection {
@@ -35,6 +38,8 @@ namespace CompositeVideoMonitor {
 
         List<FrameSection> Frame = new List<FrameSection>();
 
+        ISignal HS;
+        FilterLowPass1Hz DC = new FilterLowPass1Hz();
         public VideoMonitor(Controls controls, TimingConstants timing, Input input, Logger logger) {
             Logger = logger;
             Timing = timing;
@@ -44,6 +49,7 @@ namespace CompositeVideoMonitor {
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
             TimeKeeper = new TimeKeeper(Timing, Controls);
+            HS = new SineSignal(timing.HFreq, 0);
         }
 
         public double HPos(double volt) =>
@@ -87,11 +93,15 @@ namespace CompositeVideoMonitor {
                 var dots = new List<PhosphorDot>();
                 while (time < endTime && lineTime < Timing.LineTime) {
                     var (brightness, vsync, hsync) = signal.Get(time);
+                    var hs = HS.Get(time);
                     dots.Add(new PhosphorDot {
                         VVolt = VOsc.Get(time),
                         HVolt = HOsc.Get(time),
-                        Brightness = brightness * (80 * hsync),//4*vsync, ,
-                        Time = time
+                        Brightness = brightness, // * (80 * hsync),//4*vsync, ,
+                        Time = time,
+                        hs = hs,
+                        hs2 = hsync * 80d,
+                        sync = DC.Get(80d *hsync - 10*hs) 
                     });
                     time += Timing.DotTime;
                     lineTime += Timing.DotTime;

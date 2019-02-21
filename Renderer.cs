@@ -62,7 +62,7 @@ namespace CompositeVideoMonitor {
                 RenderDot(last, Controls.Focus * 1.4);
             }
             foreach (var dot in allDots.Skip(1).Take(allDots.Count - 2)) {
-                GL.Color3(dot.Brightness, dot.Brightness, dot.Brightness);
+                GL.Color3(dot.Brightness * Math.Abs(dot.sync), dot.Brightness, dot.Brightness);
                 RenderDot(dot, Controls.Focus);
             }
             GL.End();

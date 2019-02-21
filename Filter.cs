@@ -35,6 +35,20 @@ namespace CompositeVideoMonitor {
             return yv[4];
         }
     }
+
+    public class FilterLowPass1Hz {
+        double[] xv = new double[3];
+        double[] yv = new double[3];
+
+        public double Get(double input) {
+            xv[0] = xv[1]; xv[1] = xv[2];
+            xv[2] = input / 2.532958171e+12;
+            yv[0] = yv[1]; yv[1] = yv[2];
+            yv[2] = (xv[0] + xv[2]) + 2 * xv[1]
+                         + (-0.9999982228 * yv[0]) + (1.9999982228 * yv[1]);
+            return yv[2];
+        }
+    }
 }
 
 
