@@ -32,6 +32,7 @@ namespace CompositeVideoMonitor {
         readonly double VGain = 30;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
+        readonly HSync HSync;
 
         List<FrameSection> Frame = new List<FrameSection>();
 
@@ -44,6 +45,7 @@ namespace CompositeVideoMonitor {
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
             TimeKeeper = new TimeKeeper(Timing, Controls);
+            HSync = new HSync(timing);
         }
 
         public double HPos(double volt) =>
@@ -69,7 +71,8 @@ namespace CompositeVideoMonitor {
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
 
-                var (sections, simulatedEndTime) = CalculateSections(CompositeInput, time: simulatedTime, endTime: endTime);
+                var (sections, simulatedEndTime, hPhase) = CalculateSections(CompositeInput, time: simulatedTime, endTime: endTime);
+                Logger.HPhase = hPhase;
                 simulatedTime = simulatedEndTime;
                 var newFrame = RemoveDots(CurrentFrame(), simulatedTime);
                 newFrame.AddRange(sections);
@@ -81,25 +84,29 @@ namespace CompositeVideoMonitor {
             }
         }
 
-        (List<FrameSection>, double) CalculateSections(Input signal, double time, double endTime) {
+        (List<FrameSection>, double, double) CalculateSections(Input signal, double time, double endTime) {
             var sections = new List<FrameSection>();
+            double hPhase = 0;
             while (time < endTime) {
                 double startTime = time;
                 double lineTime = 0;
                 var dots = new List<PhosphorDot>();
                 while (time < endTime && lineTime < Timing.LineTime) {
+                    var signalValue = signal.Get(time);
+                    hPhase = HSync.GetPhase(time, signalValue);
                     dots.Add(new PhosphorDot {
                         VVolt = VOsc.Get(time),
                         HVolt = HOsc.Get(time),
-                        Brightness = signal.Get(time),
+                        Brightness = signalValue,
                         Time = time
                     });
+
                     time += Timing.DotTime;
                     lineTime += Timing.DotTime;
                 }
                 sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime });
             }
-            return (sections, time);
+            return (sections, time, hPhase);
         }
 
         List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {

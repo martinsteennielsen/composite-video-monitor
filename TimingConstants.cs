@@ -6,6 +6,7 @@
         public readonly double DotTime;
         public readonly double FrameTime;
         public readonly double LineTime;
+        public readonly double BlackLevel;
 
         public TimingConstants(double hFreq, double vFreq, double bandwidthFreq) {
             BandwidthFreq = bandwidthFreq;
@@ -14,6 +15,7 @@
             DotTime = 1.0 / (bandwidthFreq);
             FrameTime = 1.0 / vFreq;
             LineTime = 1.0 / (hFreq);
+            BlackLevel = 0.25;
         }
     }
 
