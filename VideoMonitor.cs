@@ -29,6 +29,7 @@ namespace CompositeVideoMonitor {
         readonly TimingConstants Timing;
         readonly ISignal VOsc, HOsc;
         readonly TimeKeeper TimeKeeper;
+        readonly Sync Sync;
         readonly double VGain = 30;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
@@ -44,6 +45,7 @@ namespace CompositeVideoMonitor {
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
             TimeKeeper = new TimeKeeper(Timing, Controls);
+            Sync = new Sync(timing, compositeInput);
         }
 
         public double HPos(double volt) =>
@@ -76,6 +78,10 @@ namespace CompositeVideoMonitor {
                 lock (GateKeeper) {
                     Frame = newFrame;
                 }
+                if (Sync.TryGetPhases(out var phases)) {
+                    Logger.HPhase = phases.Hphase;
+                    Logger.VPhase = phases.Vphase;
+                }
                 Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
                 Logger.DotsPrSimulation = sections.Count;
             }
@@ -88,10 +94,12 @@ namespace CompositeVideoMonitor {
                 double lineTime = 0;
                 var dots = new List<PhosphorDot>();
                 while (time < endTime && lineTime < Timing.LineTime) {
+                    var signalValue = signal.Get(time);
+                    Sync.Collect(time);
                     dots.Add(new PhosphorDot {
                         VVolt = VOsc.Get(time),
                         HVolt = HOsc.Get(time),
-                        Brightness = signal.Get(time),
+                        Brightness = signalValue,
                         Time = time
                     });
                     time += Timing.DotTime;

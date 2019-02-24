@@ -12,10 +12,16 @@ namespace CompositeVideoMonitor {
         readonly Controls Controls;
         readonly ISignal Noise = new NoiseSignal();
 
+        double LastSampleTime = 0;
+        double LastSampleValue = 0;
+
         public double Get(double time) {
+            if (time <= LastSampleTime) { return LastSampleValue; }
             if (Queue.IsEmpty) { return Noise.Get(time); }
             byte signalValue;
             while (!Queue.TryDequeue(out signalValue)) ;
+            LastSampleTime = time;
+            LastSampleValue = signalValue;
             return signalValue / 255.0;
         }
 
