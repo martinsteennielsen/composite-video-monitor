@@ -29,10 +29,10 @@ namespace CompositeVideoMonitor {
         readonly TimingConstants Timing;
         readonly ISignal VOsc, HOsc;
         readonly TimeKeeper TimeKeeper;
+        readonly Sync Sync;
         readonly double VGain = 30;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
-        readonly PhaseDetector HorizontalPhase;
 
         List<FrameSection> Frame = new List<FrameSection>();
 
@@ -45,7 +45,7 @@ namespace CompositeVideoMonitor {
             HOsc = new SawtoothSignal(timing.HFreq, 0);
             PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
             TimeKeeper = new TimeKeeper(Timing, Controls);
-            HorizontalPhase = new PhaseDetector(Timing, reference: new SquareSignal(frequency: timing.HFreq, onTime: timing.LineTime / 32d), signal: compositeInput);
+            Sync = new Sync(timing, compositeInput);
         }
 
         public double HPos(double volt) =>
@@ -78,8 +78,9 @@ namespace CompositeVideoMonitor {
                 lock (GateKeeper) {
                     Frame = newFrame;
                 }
-                if (HorizontalPhase.TryGetPhase(out var horizontalPhase)) {
-                    Logger.HPhase = horizontalPhase;
+                if (Sync.TryGetPhases(out var phases)) {
+                    Logger.HPhase = phases.Hphase;
+                    Logger.VPhase = phases.Vphase;
                 }
                 Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
                 Logger.DotsPrSimulation = sections.Count;
@@ -94,7 +95,7 @@ namespace CompositeVideoMonitor {
                 var dots = new List<PhosphorDot>();
                 while (time < endTime && lineTime < Timing.LineTime) {
                     var signalValue = signal.Get(time);
-                    HorizontalPhase.Collect(time);
+                    Sync.Collect(time);
                     dots.Add(new PhosphorDot {
                         VVolt = VOsc.Get(time),
                         HVolt = HOsc.Get(time),
