@@ -14,7 +14,7 @@ namespace CompositeVideoMonitor {
 
         public async Task Run(CancellationToken canceller) {
             while (!canceller.IsCancellationRequested) {
-                Console.WriteLine($"HPA:{HPhase} FPS:{FramesPrSecond,5:F2} SPF:{SimulationsPrFrame,7:F2} DPS:{DotsPrSimulation,6} Dots:{DotCount,7}, Skipped time:{SkippedTime}");
+                Console.WriteLine($"HPA:{HPhase,5:F2} FPS:{FramesPrSecond,5:F2} SPF:{SimulationsPrFrame,7:F2} DPS:{DotsPrSimulation,6} Dots:{DotCount,7}, Skipped time:{SkippedTime}");
                 await Task.Delay(100);
             }
         }

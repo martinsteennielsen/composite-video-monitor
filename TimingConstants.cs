@@ -7,6 +7,8 @@
         public readonly double FrameTime;
         public readonly double LineTime;
         public readonly double BlackLevel;
+        internal double MinHSync;
+        internal double MaxHSync;
 
         public TimingConstants(double hFreq, double vFreq, double bandwidthFreq) {
             BandwidthFreq = bandwidthFreq;
@@ -16,6 +18,8 @@
             FrameTime = 1.0 / vFreq;
             LineTime = 1.0 / (hFreq);
             BlackLevel = 0.25;
+            MinHSync = 1e-6;
+            MaxHSync = 6e-6;
         }
     }
 
