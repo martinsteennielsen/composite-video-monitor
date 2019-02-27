@@ -12,15 +12,18 @@ namespace CompositeVideoMonitor {
         readonly Tube CRT;
         readonly Logger Logger;
         readonly Controls Controls;
+        readonly Func<double, double, bool> ShowCursor;
+
 
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight;
 
-        public Renderer(Controls controls, Tube monitor, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
-            CRT = monitor;
+        public Renderer(Controls controls, Func<double, double, bool> showCursor, Tube tube, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             Timing = timing;
             Logger = logger;
             Controls = controls;
+            CRT = tube;
+            ShowCursor = showCursor;
 
             var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: () => 0);
             var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: () => 0);
@@ -31,13 +34,6 @@ namespace CompositeVideoMonitor {
 
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactorSrc.SrcColor, BlendingFactorDest.OneMinusDstAlpha);
-            KeyDown += OnKeyDown;
-        }
-
-        private void OnKeyDown(object sender, KeyboardKeyEventArgs e) {
-            if (!Controls.ProcessKey(e)) {
-                Exit();
-            }
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
@@ -50,17 +46,16 @@ namespace CompositeVideoMonitor {
             if (!allDots.Any()) { return; }
 
             GL.Begin(PrimitiveType.Quads);
-            if (Controls.Cursor) {
-                PhosphorDot first = allDots.First();
-                Controls.ProcessPosition(CRT.HPos(first.HVolt), CRT.VPos(first.VVolt));
-                GL.Color4(0d, 01d, 0d, 0.1d);
-                RenderDot(first, Controls.Focus * 1.4);
-
-                PhosphorDot last = allDots.Last();
-                Controls.ProcessPosition(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt));
+            PhosphorDot last = allDots.Last();
+            
+            if (ShowCursor(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt))) {
                 GL.Color4(1d, 0d, 0d, 0.1d);
                 RenderDot(last, Controls.Focus * 1.4);
+                PhosphorDot first = allDots.First();
+                GL.Color4(0d, 01d, 0d, 0.1d);
+                RenderDot(first, Controls.Focus * 1.4);
             }
+
             foreach (var dot in allDots.Skip(1).Take(allDots.Count - 2)) {
                 GL.Color3(dot.Brightness, dot.Brightness, dot.Brightness);
                 RenderDot(dot, Controls.Focus);

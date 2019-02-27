@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
@@ -15,7 +16,7 @@ namespace CompositeVideoMonitor {
         }
 
         double lastTime = 0;
-        public async Task<(double,double)> GetElapsedTimeAsync() {
+        public async Task<(double,double)> GetElapsedTimeAsync(Func<int> singleStep) {
             (double, double) el(double elapsed) {
                 double skiptime = 0;
                 while (elapsed > Timing.FrameTime) {
@@ -28,7 +29,7 @@ namespace CompositeVideoMonitor {
             double simulatedDotTime = 1d / Timing.BandwidthFreq;
             if (Controls.ZoomT == 0) {
                 await Task.Delay(200);
-                var step = Controls.SingleStep();
+                var step = singleStep();
                 return (step * simulatedDotTime, 0);
             } else if (Controls.ZoomT == 1) {
                 double dotsPrSimulation = (TaskWaitTimeMs * 0.001) / simulatedDotTime;

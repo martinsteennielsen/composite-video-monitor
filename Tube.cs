@@ -46,8 +46,8 @@ namespace CompositeVideoMonitor {
             }
         }
 
-        public double Calculate(double startTime, double endTime, ISignal signal, ISignal hOsc, ISignal vOsc) {
-            var (sections, simulatedEndTime) = CalculateSections(signal, hOsc, vOsc, time: startTime, endTime: endTime);
+        public double Calculate(double startTime, double endTime, ISignal compositeSignal, ISignal hOsc, ISignal vOsc) {
+            var (sections, simulatedEndTime) = CalculateSections(compositeSignal, hOsc, vOsc, time: startTime, endTime: endTime);
             var newFrame = RemoveDots(CurrentSections(), simulatedEndTime);
             newFrame.AddRange(sections);
             lock (GateKeeper) {

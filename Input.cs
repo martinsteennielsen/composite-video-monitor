@@ -9,7 +9,6 @@ namespace CompositeVideoMonitor {
         readonly ConcurrentQueue<byte> Queue = new ConcurrentQueue<byte>();
         readonly SubscriberSocket Subscriber;
         readonly NetMQPoller Poller;
-        readonly Controls Controls;
         readonly ISignal Noise = new NoiseSignal();
 
         double LastSampleTime = 0;
@@ -25,9 +24,8 @@ namespace CompositeVideoMonitor {
             return signalValue / 255.0;
         }
 
-        public Input(Controls controls, string address) {
+        public Input(string address) {
             Poller = new NetMQPoller();
-            Controls = controls;
 
             Subscriber = new SubscriberSocket();
             Poller.Add(Subscriber);
