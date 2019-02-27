@@ -9,23 +9,23 @@ using System.Threading.Tasks;
 namespace CompositeVideoMonitor {
     public class Renderer : GameWindow {
         readonly TimingConstants Timing;
-        readonly VideoMonitor CRT;
+        readonly Tube CRT;
         readonly Logger Logger;
         readonly Controls Controls;
 
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight;
 
-        public Renderer(Controls controls, VideoMonitor monitor, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+        public Renderer(Controls controls, Tube monitor, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             CRT = monitor;
             Timing = timing;
             Logger = logger;
             Controls = controls;
 
-            var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: 0);
-            var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: 0);
-            ScaleX = 2.0 / VideoMonitor.TubeWidth;
-            ScaleY = 2.0 / VideoMonitor.TubeHeight;
+            var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: () => 0);
+            var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: () => 0);
+            ScaleX = 2.0 / Tube.TubeWidth;
+            ScaleY = 2.0 / Tube.TubeHeight;
             DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0)));
             DotHeight = 0.5 * ScaleY * (CRT.VPos(vOsc.Get(Timing.LineTime)) - CRT.VPos(vOsc.Get(0)));
 
@@ -46,7 +46,7 @@ namespace CompositeVideoMonitor {
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
 
-            var allDots = CRT.CurrentFrame().SelectMany(x => x.Dots).ToList();
+            var allDots = CRT.GetPicture();
             if (!allDots.Any()) { return; }
 
             GL.Begin(PrimitiveType.Quads);
@@ -74,7 +74,7 @@ namespace CompositeVideoMonitor {
         }
 
         private void RenderDot(PhosphorDot dot, double focus) {
-            double z = VideoMonitor.TubeWidth / Controls.TubeViewSize;
+            double z = Tube.TubeWidth / Controls.TubeViewSize;
             double xPos = z * ScaleX * (Controls.TubeViewX + CRT.HPos(dot.HVolt));
             double yPos = -z * ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
             double dotWidth = focus * DotWidth * z;

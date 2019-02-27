@@ -5,7 +5,7 @@ using OpenTK.Input;
 namespace CompositeVideoMonitor {
 
     public class Controls {
-        public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = VideoMonitor.TubeWidth, Focus = 1, ZoomT = 1;
+        public double TubeViewX = 0, TubeViewY = 0, TubeViewSize = Tube.TubeWidth, Focus = 1, ZoomT = 1;
         double? ZoomTStop;
         public bool Cursor = false;
         bool FollowCursor = false;
@@ -46,7 +46,7 @@ namespace CompositeVideoMonitor {
             } else if (e.Key == Key.End) {
                 Cursor = false;
                 FollowCursor = false;
-                TubeViewSize = VideoMonitor.TubeWidth;
+                TubeViewSize = Tube.TubeWidth;
                 TubeViewX = 0;
                 TubeViewY = 0;
                 ZoomT = 1;

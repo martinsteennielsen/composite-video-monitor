@@ -14,7 +14,7 @@ namespace CompositeVideoMonitor {
         readonly double Frequency;
         readonly double Pi = Math.PI;
 
-        public SawtoothSignal(double frequency, double phase) {
+        public SawtoothSignal(double frequency, Func<double> phase) {
             Frequency = frequency;
         }
         public double Get(double time) => 2.0 / Pi * (Frequency * Pi * (time % (1.0 / Frequency)) - (Pi / 2.0));
