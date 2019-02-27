@@ -1,128 +1,43 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
-    public struct PhosphorDot {
-        public double VVolt;
-        public double HVolt;
-        public double Time;
-        public double Brightness;
-    }
 
-    public class FrameSection {
-        public double OldestDotTime;
-        public double NewestDotTime;
-        public List<PhosphorDot> Dots;
-    }
-
-    public class VideoMonitor {
-        public static readonly double TubeWidth = 0.4;
-        public static readonly double TubeHeight = 0.3;
-        public readonly double PhosphorGlowTime;
-
-        readonly object GateKeeper = new object();
+    public class VideoMonitor : ISignal {
         readonly Input CompositeInput;
         readonly Logger Logger;
-        readonly Controls Controls;
-        readonly TimingConstants Timing;
         readonly ISignal VOsc, HOsc;
         readonly TimeKeeper TimeKeeper;
         readonly Sync Sync;
-        readonly double VGain = 30;
-        readonly double HGain = 40;
-        readonly double FullDeflectionVoltage = 40;
+        public readonly Tube Tube;
 
-        List<FrameSection> Frame = new List<FrameSection>();
 
         public VideoMonitor(Controls controls, TimingConstants timing, Input compositeInput, Logger logger) {
             Logger = logger;
-            Timing = timing;
             CompositeInput = compositeInput;
-            Controls = controls;
-            VOsc = new SawtoothSignal(timing.VFreq, 0);
-            HOsc = new SawtoothSignal(timing.HFreq, 0);
-            PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
-            TimeKeeper = new TimeKeeper(Timing, Controls);
             Sync = new Sync(timing, compositeInput);
-        }
-
-        public double HPos(double volt) =>
-            0.5 * volt * HGain * TubeWidth / FullDeflectionVoltage;
-
-        public double VPos(double volt) =>
-            0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
-
-        public List<FrameSection> CurrentFrame() {
-            lock (GateKeeper) {
-                return Frame.ToList();
-            }
+            VOsc = new SawtoothSignal(timing.VFreq, Sync.VPhase);
+            HOsc = new SawtoothSignal(timing.HFreq, Sync.HPhase);
+            Tube = new Tube(timing);
+            TimeKeeper = new TimeKeeper(timing, controls);
         }
 
         public async Task Run(CancellationToken canceller) {
             double simulatedTime = 0;
-            double lastZoomT = Controls.ZoomT;
-
             while (!canceller.IsCancellationRequested) {
                 var (elapsedTime, skippedTime) = await TimeKeeper.GetElapsedTimeAsync();
                 CompositeInput.Skip(skippedTime);
 
                 double startTime = simulatedTime;
                 double endTime = simulatedTime + elapsedTime;
-
-                var (sections, simulatedEndTime) = CalculateSections(CompositeInput, time: simulatedTime, endTime: endTime);
-                simulatedTime = simulatedEndTime;
-                var newFrame = RemoveDots(CurrentFrame(), simulatedTime);
-                newFrame.AddRange(sections);
-                lock (GateKeeper) {
-                    Frame = newFrame;
-                }
-                if (Sync.TryGetPhases(out var phases)) {
-                    Logger.HPhase = phases.Hphase;
-                    Logger.VPhase = phases.Vphase;
-                }
-                Logger.SimulationsPrFrame = Timing.FrameTime / elapsedTime;
-                Logger.DotsPrSimulation = sections.Count;
+                simulatedTime = Tube.Calculate(startTime, endTime, signal: this, hOsc: HOsc, vOsc: VOsc);
             }
         }
 
-        (List<FrameSection>, double) CalculateSections(Input signal, double time, double endTime) {
-            var sections = new List<FrameSection>();
-            while (time < endTime) {
-                double startTime = time;
-                double lineTime = 0;
-                var dots = new List<PhosphorDot>();
-                while (time < endTime && lineTime < Timing.LineTime) {
-                    var signalValue = signal.Get(time);
-                    Sync.Collect(time);
-                    dots.Add(new PhosphorDot {
-                        VVolt = VOsc.Get(time),
-                        HVolt = HOsc.Get(time),
-                        Brightness = signalValue,
-                        Time = time
-                    });
-                    time += Timing.DotTime;
-                    lineTime += Timing.DotTime;
-                }
-                sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Timing.DotTime });
-            }
-            return (sections, time);
-        }
-
-        List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {
-            var dimmestDotTime = time - PhosphorGlowTime;
-
-            var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime > dimmestDotTime).ToList();
-            var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime <= dimmestDotTime);
-
-            var newDots = new List<FrameSection>();
-            foreach (var dimmingDots in someDotsGlowing) {
-                newDots.Add(new FrameSection { Dots = dimmingDots.Dots.Where(x => x.Time > dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
-            }
-            var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime > dimmestDotTime);
-            newDots.AddRange(allDotsGlowing);
-            return newDots;
+        double ISignal.Get(double time) {
+            var res = CompositeInput.Get(time);
+            Sync.Calculate(time);
+            return res;
         }
     }
 }

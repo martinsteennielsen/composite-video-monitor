@@ -16,7 +16,7 @@ namespace CompositeVideoMonitor {
                 Task.Run(() => logger.Run(canceller.Token));
                 var monitor = new VideoMonitor(controls, timing, compositeInput: compositeInput, logger: logger);
                 Task.Run(() => monitor.Run(canceller.Token));
-                using (var renderer = new Renderer(controls, monitor, timing, logger, 600, 600, "PAL")) {
+                using (var renderer = new Renderer(controls, monitor.Tube, timing, logger, 600, 600, "PAL")) {
                     renderer.Run();
                 }
                 canceller.Cancel();

@@ -15,14 +15,12 @@ namespace CompositeVideoMonitor {
 
         }
 
-        public void Collect(double time) {
+        public double HPhase() => 0;
+        public double VPhase() => 0;
+
+        public void Calculate(double time) {
             HorizontalPhase.Collect(time);
             VerticalPhase.Collect(time);
-        }
-
-        public bool TryGetPhases(out (double Vphase, double Hphase) phases) {
-            phases = (0, 0);
-            return HorizontalPhase.TryGetPhase(out phases.Hphase) && VerticalPhase.TryGetPhase(out phases.Vphase);
         }
 
         class PhaseDetector {
