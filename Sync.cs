@@ -1,17 +1,17 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace CompositeVideoMonitor {
+
     public class Sync {
         readonly PhaseDetector HorizontalPhase, VerticalPhase;
 
         public Sync(TimingConstants timing, ISignal compositeInput) {
             var hReference = new SquareSignal(frequency: timing.HFreq, onTime: timing.SyncTimes.LineSyncTime);
             HorizontalPhase = new PhaseDetector(frequency: timing.HFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: timing.SyncTimes.LineSyncTime, reference: hReference, signal: compositeInput);
-            double sw = 0.5 * timing.LineTime - timing.SyncTimes.LineSyncTime;
-            var vReference = new SquareSignal(frequency: timing.VFreq, onTime: sw);
-            VerticalPhase = new PhaseDetector(frequency: timing.VFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: sw, reference: vReference, signal: compositeInput);
+            double syncWidth = 0.5 * timing.LineTime - timing.SyncTimes.LineSyncTime;
+            var vReference = new SquareSignal(frequency: timing.VFreq, onTime: syncWidth);
+            VerticalPhase = new PhaseDetector(frequency: timing.VFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: syncWidth, reference: vReference, signal: compositeInput);
 
         }
 
@@ -19,8 +19,8 @@ namespace CompositeVideoMonitor {
         public double VPhase() => 0;
 
         public void Calculate(double time) {
-            HorizontalPhase.Collect(time);
-            VerticalPhase.Collect(time);
+            HorizontalPhase.SpendTime(time);
+            VerticalPhase.SpendTime(time);
         }
 
         class PhaseDetector {
@@ -40,11 +40,11 @@ namespace CompositeVideoMonitor {
                 SyncWidth = syncWidth;
             }
 
-            public void Collect(double time) {
+            public void SpendTime(double time) {
                 bool isSyncRef = Reference.Get(time) == 1;
                 bool isSyncSig = Signal.Get(time) < BlackLevel;
-                CurrentPulse(SyncSignalPulses).Collect(time, sync: isSyncSig, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
-                CurrentPulse(SyncReferencePulses).Collect(time, sync: isSyncRef, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
+                CurrentPulse(SyncSignalPulses).SpendTime(time, sync: isSyncSig, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
+                CurrentPulse(SyncReferencePulses).SpendTime(time, sync: isSyncRef, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
             }
 
             public bool TryGetPhase(out double phase) {
@@ -83,7 +83,7 @@ namespace CompositeVideoMonitor {
             class SyncPulse {
                 public double? Start;
                 public double? End;
-                public void Collect(double time, bool sync, double min, double max) {
+                public void SpendTime(double time, bool sync, double min, double max) {
                     if (Start == null && sync) {
                         Start = time;
                     } else if (End == null && Start != null && !sync) {

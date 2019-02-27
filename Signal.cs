@@ -1,6 +1,7 @@
 using System;
 
 namespace CompositeVideoMonitor {
+
     public interface ISignal {
         double Get(double time);
     }
@@ -32,5 +33,4 @@ namespace CompositeVideoMonitor {
 
         public double Get(double time) => ((OnTime + OffTime + time - OnStartTime) % (OnTime + OffTime)) > OnTime ? 0 : Amplitude;
     }
-
 }

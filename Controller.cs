@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenTK.Input;
@@ -6,12 +5,11 @@ using OpenTK.Input;
 namespace CompositeVideoMonitor {
 
     public class Controller {
-        readonly TimeKeeper TimeKeeper;
         readonly Input CompositeInput;
         readonly VideoMonitor Monitor;
         readonly Renderer Renderer;
-        readonly Logger Logger;
         readonly Controls Controls;
+        readonly TimingConstants Timing;
 
         double? ZoomTStop;
         bool FollowCursor = false;
@@ -19,42 +17,43 @@ namespace CompositeVideoMonitor {
         bool CursorOn = false;
 
         public Controller(TimingConstants timing, Input compositeSignal) {
+            Timing = timing;
             Controls = new Controls();
-            TimeKeeper = new TimeKeeper(timing, Controls);
             CompositeInput = compositeSignal;
             Monitor = new VideoMonitor(timing, CompositeInput);
-            Logger = new Logger();
-            Renderer = new Renderer(Controls, ProcessPosition, Monitor.Tube, timing, Logger, 600, 600, "PAL");
+            Renderer = new Renderer(Controls, ShowCursor, Monitor.Tube, timing, 600, 600, "PAL");
             Renderer.KeyDown +=  (_, e) => ProcessKey(e);
         }
 
         public void Run(CancellationTokenSource canceller) {
-            Task.Run(() => Logger.Run(canceller.Token));
             Task.Run(() => Run(canceller.Token));
             Renderer.Run();
             canceller.Cancel();
         }
 
         async Task Run(CancellationToken canceller) {
-            double simulatedTime = 0;
-            while (!canceller.IsCancellationRequested) {
-                var (elapsedTime, skippedTime) = await TimeKeeper.GetElapsedTimeAsync(SingleStep);
-                CompositeInput.Skip(skippedTime);
+            var realTime = new RealTimeKeeper(Timing, Controls);
+            var artificialTime = new ArtificialTimeKeeper(Timing, Controls);
 
-                double startTime = simulatedTime;
-                double endTime = simulatedTime + elapsedTime;
-                simulatedTime = Monitor.Calculate(startTime, endTime);
+            async Task<(double elapsedTime, double skippedTime)> relax() => 
+                Controls.ZoomT == 1 
+                    ? await realTime.GetElapsedTimeAsync() 
+                    : await artificialTime.GetElapsedTimeAsync(SingleStep);
+
+            double startTime = 0;
+            while (!canceller.IsCancellationRequested) {
+                var (elapsedTime, skippedTime) = await relax();
+                CompositeInput.Skip(skippedTime);
+                startTime = Monitor.SpendTime(startTime, startTime + elapsedTime);
             }
         }
 
-        bool ProcessKey(KeyboardKeyEventArgs e) {
+        void ProcessKey(KeyboardKeyEventArgs e) {
             double ds = Controls.TubeViewSize * 0.05;
             if (e.Key == Key.Escape) {
-                return false;
+                Renderer.Exit();
             } else if (e.Key == Key.X && e.Shift) {
                 Controls.TubeViewX -= ds;
-            } else if (e.Key == Key.Escape) {
-                Renderer.Exit();
             } else if (e.Key == Key.X && !e.Shift) {
                 Controls.TubeViewX += ds;
             } else if (e.Key == Key.Y && e.Shift) {
@@ -89,7 +88,6 @@ namespace CompositeVideoMonitor {
                 Controls.TubeViewY = 0;
                 Controls.ZoomT = 1;
             }
-            return true;
         }
 
         int SingleStep() {
@@ -98,7 +96,7 @@ namespace CompositeVideoMonitor {
             return step;
         }
 
-        bool ProcessPosition(double cursorX, double cursorY) {
+        bool ShowCursor(double cursorX, double cursorY) {
             if (FollowCursor) {
                 (Controls.TubeViewX, Controls.TubeViewY) = (-cursorX, -cursorY);
             }

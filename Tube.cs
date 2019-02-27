@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
 
@@ -16,7 +14,7 @@ namespace CompositeVideoMonitor {
         readonly TimingConstants Timing;
         public static readonly double TubeWidth = 0.4;
         public static readonly double TubeHeight = 0.3;
-        public readonly double PhosphorGlowTime;
+        readonly double PhosphorGlowTime;
 
         readonly object GateKeeper = new object();
         readonly double VGain = 30;
@@ -46,7 +44,7 @@ namespace CompositeVideoMonitor {
             }
         }
 
-        public double Calculate(double startTime, double endTime, ISignal compositeSignal, ISignal hOsc, ISignal vOsc) {
+        public double SpendTime(double startTime, double endTime, ISignal compositeSignal, ISignal hOsc, ISignal vOsc) {
             var (sections, simulatedEndTime) = CalculateSections(compositeSignal, hOsc, vOsc, time: startTime, endTime: endTime);
             var newFrame = RemoveDots(CurrentSections(), simulatedEndTime);
             newFrame.AddRange(sections);

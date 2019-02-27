@@ -4,19 +4,21 @@ using System.Threading.Tasks;
 
 namespace CompositeVideoMonitor {
 
-    public class TimeKeeper {
+    public class RealTimeKeeper {
+
         private const int TaskWaitTimeMs = 5;
         readonly TimingConstants Timing;
         readonly Controls Controls;
         readonly Stopwatch Watch = Stopwatch.StartNew();
         
-        public TimeKeeper(TimingConstants timing, Controls controls) {
+        public RealTimeKeeper(TimingConstants timing, Controls controls) {
             Timing = timing;
             Controls = controls;
         }
 
         double lastTime = 0;
-        public async Task<(double,double)> GetElapsedTimeAsync(Func<int> singleStep) {
+
+        public async Task<(double,double)> GetElapsedTimeAsync() {
             (double, double) el(double elapsed) {
                 double skiptime = 0;
                 while (elapsed > Timing.FrameTime) {
@@ -27,11 +29,6 @@ namespace CompositeVideoMonitor {
             }
             double startTime = lastTime;
             double simulatedDotTime = 1d / Timing.BandwidthFreq;
-            if (Controls.ZoomT == 0) {
-                await Task.Delay(200);
-                var step = singleStep();
-                return (step * simulatedDotTime, 0);
-            } else if (Controls.ZoomT == 1) {
                 double dotsPrSimulation = (TaskWaitTimeMs * 0.001) / simulatedDotTime;
                 if (dotsPrSimulation < 1) {
                     await Task.Delay((int)(TaskWaitTimeMs / dotsPrSimulation));
@@ -42,17 +39,6 @@ namespace CompositeVideoMonitor {
                     lastTime = Watch.Elapsed.TotalSeconds;
                     return el(lastTime - startTime);
                 }
-            } else {
-                double realDotTime = simulatedDotTime / Controls.ZoomT;
-                double dotsPrSimulation = 0.005 / realDotTime;
-                if (dotsPrSimulation < 1) {
-                    await Task.Delay((int)(TaskWaitTimeMs / dotsPrSimulation));
-                    return (simulatedDotTime, 0);
-                } else {
-                    await Task.Delay(TaskWaitTimeMs);
-                    return (dotsPrSimulation * simulatedDotTime, 0);
-                }
             }
         }
-    }
 }

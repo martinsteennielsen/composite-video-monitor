@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace CompositeVideoMonitor {
 
     public class VideoMonitor : ISignal {
@@ -18,8 +14,8 @@ namespace CompositeVideoMonitor {
             Tube = new Tube(timing);
         }
 
-        internal double Calculate(double startTime, double endTime) =>
-            Tube.Calculate(startTime, endTime, compositeSignal: this, hOsc: HOsc, vOsc: VOsc);
+        internal double SpendTime(double startTime, double endTime) =>
+            Tube.SpendTime(startTime, endTime, compositeSignal: this, hOsc: HOsc, vOsc: VOsc);
 
         double ISignal.Get(double time) {
             var res = CompositeInput.Get(time);

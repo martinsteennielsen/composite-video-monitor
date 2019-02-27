@@ -1,16 +1,14 @@
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
-using OpenTK.Input;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 
-namespace CompositeVideoMonitor {
+namespace CompositeVideoMonitor
+{
     public class Renderer : GameWindow {
         readonly TimingConstants Timing;
         readonly Tube CRT;
-        readonly Logger Logger;
         readonly Controls Controls;
         readonly Func<double, double, bool> ShowCursor;
 
@@ -18,9 +16,8 @@ namespace CompositeVideoMonitor {
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight;
 
-        public Renderer(Controls controls, Func<double, double, bool> showCursor, Tube tube, TimingConstants timing, Logger logger, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+        public Renderer(Controls controls, Func<double, double, bool> showCursor, Tube tube, TimingConstants timing, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             Timing = timing;
-            Logger = logger;
             Controls = controls;
             CRT = tube;
             ShowCursor = showCursor;
@@ -46,8 +43,8 @@ namespace CompositeVideoMonitor {
             if (!allDots.Any()) { return; }
 
             GL.Begin(PrimitiveType.Quads);
+
             PhosphorDot last = allDots.Last();
-            
             if (ShowCursor(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt))) {
                 GL.Color4(1d, 0d, 0d, 0.1d);
                 RenderDot(last, Controls.Focus * 1.4);
@@ -63,9 +60,6 @@ namespace CompositeVideoMonitor {
             GL.End();
 
             SwapBuffers();
-
-            Logger.DotCount = allDots.Count;
-            Logger.FramesPrSecond = 1.0 / e.Time;
         }
 
         private void RenderDot(PhosphorDot dot, double focus) {
