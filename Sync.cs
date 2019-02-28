@@ -4,23 +4,28 @@ using System.Linq;
 namespace CompositeVideoMonitor {
 
     public class Sync {
-        readonly PhaseDetector HorizontalPhase, VerticalPhase;
+        readonly PhaseDetector HPhaseDetect, VPhaseDetect;
 
         public Sync(TimingConstants timing, ISignal compositeInput) {
             var hReference = new SquareSignal(frequency: timing.HFreq, onTime: timing.SyncTimes.LineSyncTime);
-            HorizontalPhase = new PhaseDetector(frequency: timing.HFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: timing.SyncTimes.LineSyncTime, reference: hReference, signal: compositeInput);
+            HPhaseDetect = new PhaseDetector(frequency: timing.HFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: timing.SyncTimes.LineSyncTime, reference: hReference, signal: compositeInput);
             double syncWidth = 0.5 * timing.LineTime - timing.SyncTimes.LineSyncTime;
             var vReference = new SquareSignal(frequency: timing.VFreq, onTime: syncWidth);
-            VerticalPhase = new PhaseDetector(frequency: timing.VFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: syncWidth, reference: vReference, signal: compositeInput);
-
+            VPhaseDetect = new PhaseDetector(frequency: timing.VFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: syncWidth, reference: vReference, signal: compositeInput);
         }
 
-        public double HPhase() => 0;
-        public double VPhase() => 0;
+        public double HPhase = 0;
+        public double VPhase = 0;
 
-        public void Calculate(double time) {
-            HorizontalPhase.SpendTime(time);
-            VerticalPhase.SpendTime(time);
+        public void SpendTime(double time) {
+            HPhaseDetect.SpendTime(time);
+            VPhaseDetect.SpendTime(time);
+            if (HPhaseDetect.TryGetPhase(out var hphase)) {
+                HPhase = -hphase;
+            }
+            if (VPhaseDetect.TryGetPhase(out var vphase)) {
+                VPhase = -vphase;
+            }
         }
 
         class PhaseDetector {

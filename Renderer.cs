@@ -22,8 +22,8 @@ namespace CompositeVideoMonitor
             CRT = tube;
             ShowCursor = showCursor;
 
-            var hOsc = new SawtoothSignal(frequency: timing.HFreq, phase: () => 0);
-            var vOsc = new SawtoothSignal(frequency: timing.VFreq, phase: () => 0);
+            var hOsc = new SawtoothSignal { Frequency = timing.HFreq };
+            var vOsc = new SawtoothSignal { Frequency = timing.VFreq };
             ScaleX = 2.0 / Tube.TubeWidth;
             ScaleY = 2.0 / Tube.TubeHeight;
             DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0)));

@@ -12,13 +12,11 @@ namespace CompositeVideoMonitor {
     }
 
     public class SawtoothSignal : ISignal {
-        readonly double Frequency;
+        public double Phase = 0;
+        public double Frequency = 1;
         readonly double Pi = Math.PI;
 
-        public SawtoothSignal(double frequency, Func<double> phase) {
-            Frequency = frequency;
-        }
-        public double Get(double time) => 2.0 / Pi * (Frequency * Pi * (time % (1.0 / Frequency)) - (Pi / 2.0));
+        public double Get(double time) => 2.0 / Pi * (Frequency * Pi * ((time + Phase/Frequency/Math.PI) % (1.0 / Frequency)) - (Pi / 2.0));
     }
 
     public class SquareSignal : ISignal {
