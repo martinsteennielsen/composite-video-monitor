@@ -4,103 +4,68 @@ using System.Linq;
 namespace CompositeVideoMonitor {
 
     public class Sync {
+        readonly IPeriodic HRef, VRef;
         readonly PhaseDetector HPhaseDetect, VPhaseDetect;
+        readonly TimingConstants Timing;
 
-        public Sync(TimingConstants timing, ISignal compositeInput) {
-            var hReference = new SquareSignal(frequency: timing.HFreq, onTime: timing.SyncTimes.LineSyncTime);
-            HPhaseDetect = new PhaseDetector(frequency: timing.HFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: timing.SyncTimes.LineSyncTime, reference: hReference, signal: compositeInput);
+        public Sync(TimingConstants timing, ISignal compositeInput, IPeriodic vref, IPeriodic href) {
+            HRef = href;
+            VRef = vref;
+            Timing = timing;
+            HPhaseDetect = new PhaseDetector(blackLevel: timing.SyncTimes.BlackLevel, frequency: timing.HFreq, syncWidth: timing.SyncTimes.LineSyncTime, signal: compositeInput);
             double syncWidth = 0.5 * timing.LineTime - timing.SyncTimes.LineSyncTime;
-            var vReference = new SquareSignal(frequency: timing.VFreq, onTime: syncWidth);
-            VPhaseDetect = new PhaseDetector(frequency: timing.VFreq, blackLevel: timing.SyncTimes.BlackLevel, syncWidth: syncWidth, reference: vReference, signal: compositeInput);
+            VPhaseDetect = new PhaseDetector(blackLevel: timing.SyncTimes.BlackLevel, frequency: timing.VFreq, syncWidth: syncWidth, signal: compositeInput);
         }
 
-        public double HPhase = 0;
-        public double VPhase = 0;
-
         public void SpendTime(double time) {
-            HPhaseDetect.SpendTime(time);
-            VPhaseDetect.SpendTime(time);
-            if (HPhaseDetect.TryGetPhase(out var hphase)) {
-                HPhase = -hphase;
+            if (HPhaseDetect.TryGetPhase(time, out var hphase)) {
+                HRef.Phase = -hphase;
             }
-            if (VPhaseDetect.TryGetPhase(out var vphase)) {
-                VPhase = -vphase;
+            if (VPhaseDetect.TryGetPhase(time, out var vphase)) {
+                VRef.Phase = -hphase;
             }
         }
 
         class PhaseDetector {
-
-            readonly double SyncWidth, Frequency, BlackLevel;
-            readonly ISignal Reference;
+            readonly double SyncWidth, BlackLevel, Frequency;
             readonly ISignal Signal;
-            readonly SyncPulse[] SyncSignalPulses = new SyncPulse[3];
-            readonly SyncPulse[] SyncReferencePulses = new SyncPulse[3];
 
-
-            public PhaseDetector(double frequency, double blackLevel, double syncWidth, ISignal reference, ISignal signal) {
-                Frequency = frequency;
+            public PhaseDetector(double blackLevel, double frequency, double syncWidth, ISignal signal) {
                 BlackLevel = blackLevel;
                 Signal = signal;
-                Reference = reference;
                 SyncWidth = syncWidth;
+                Frequency = frequency;
             }
 
-            public void SpendTime(double time) {
-                bool isSyncRef = Reference.Get(time) == 1;
-                bool isSyncSig = Signal.Get(time) < BlackLevel;
-                CurrentPulse(SyncSignalPulses).SpendTime(time, sync: isSyncSig, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
-                CurrentPulse(SyncReferencePulses).SpendTime(time, sync: isSyncRef, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
-            }
-
-            public bool TryGetPhase(out double phase) {
-                double? timeDiff = TimeDifference(SyncSignalPulses, SyncReferencePulses);
+            public bool TryGetPhase(double time, out double phase) {
                 phase = 0;
-                if (timeDiff == null) { return false; }
-                phase = Math.PI * (timeDiff.Value) * Frequency;
-                if (phase > Math.PI || phase < -Math.PI) { return false; }
-                return true;
+                bool isSyncSig = Signal.Get(time) < BlackLevel;
+                double? syncTime = SpendTime(time, sync: isSyncSig, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
+                if (syncTime != null) {
+                    SyncStart = SyncEnd = null;
+                    phase = Math.PI * syncTime.Value * Frequency;
+                    if (phase > Math.PI/2) { phase -= Math.PI; }
+                    return true;
+                }
+                return false;
             }
 
-            private double? TimeDifference(SyncPulse[] signalSync, SyncPulse[] refSync) {
-                int c = 0; double dif = 0;
-                foreach (var (si, rf) in signalSync.Zip(refSync, (x, y) => (x, y))) {
-                    if (si == null || rf == null) { continue; }
-                    if (si.Start == null || rf.Start == null) { continue; }
-                    if (si.End == null || rf.End == null) { continue; }
-                    dif += si.Start.Value - rf.Start.Value;
-                    if (si.Start.Value < rf.Start.Value) {
-                        dif += (1d / Frequency);
-                    }
-                    c++;
-                }
-                return c != 0 ? (double?)dif / c : null;
-            }
+            public double? SyncStart;
+            public double? SyncEnd;
 
-            private SyncPulse CurrentPulse(SyncPulse[] pulses) {
-                if (pulses[0] == null || (pulses[0].End != null && (pulses[0].Start != null))) {
-                    pulses[2] = pulses[1];
-                    pulses[1] = pulses[0];
-                    pulses[0] = new SyncPulse();
+            double? SpendTime(double time, bool sync, double min, double max) {
+                if (SyncStart == null && sync) SyncStart = time;
+                if (SyncStart == null) { return null; }
+                if (SyncEnd == null && !sync) SyncEnd = time;
+                if (SyncEnd == null) { return null; }
+                var dur = SyncEnd.Value - SyncStart.Value;
+                if (dur < 0.9 * SyncWidth || dur > 1.1 * SyncWidth) {
+                    SyncStart = SyncEnd = null;
+                    return null;
+                } else {
+                    return SyncStart % (1d / Frequency);
                 }
-                return pulses[0];
-            }
 
-            class SyncPulse {
-                public double? Start;
-                public double? End;
-                public void SpendTime(double time, bool sync, double min, double max) {
-                    if (Start == null && sync) {
-                        Start = time;
-                    } else if (End == null && Start != null && !sync) {
-                        End = time;
-                        if (End - Start > max) {
-                            Start = null; End = null;
-                        }
-                        if (End - Start < min) {
-                            Start = null; End = null;
-                        }
-                    }
-                }
             }
         }
     }

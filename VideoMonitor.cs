@@ -2,15 +2,15 @@ namespace CompositeVideoMonitor {
 
     public class VideoMonitor : ISignal {
         readonly ISignal CompositeInput;
-        readonly SawtoothSignal VOsc, HOsc;
+        readonly IPeriodic VOsc, HOsc;
         readonly Sync Sync;
         public readonly Tube Tube;
 
         public VideoMonitor(TimingConstants timing, ISignal compositeInput) {
             CompositeInput = compositeInput;
-            Sync = new Sync(timing, compositeInput);
-            VOsc = new SawtoothSignal { Frequency = timing.VFreq };
-            HOsc = new SawtoothSignal { Frequency = timing.HFreq };
+            VOsc = new SawtoothSignal { Frequency = timing.VFreq, Phase = 0 };
+            HOsc = new SawtoothSignal { Frequency = timing.HFreq, Phase = 0 };
+            Sync = new Sync(timing, compositeInput, VOsc, HOsc);
             Tube = new Tube(timing);
         }
 
@@ -20,8 +20,6 @@ namespace CompositeVideoMonitor {
         double ISignal.Get(double time) {
             var res = CompositeInput.Get(time);
             Sync.SpendTime(time);
-            VOsc.Phase = Sync.VPhase;
-            HOsc.Phase = Sync.HPhase;
             return res;
         }
     }
