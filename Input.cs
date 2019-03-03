@@ -10,6 +10,7 @@ namespace CompositeVideoMonitor {
         readonly SubscriberSocket Subscriber;
         readonly NetMQPoller Poller;
         readonly ISignal Noise = new NoiseSignal();
+        readonly double MaxFrames;
 
         double LastSampleTime = 0;
         double LastSampleValue = 0;
@@ -24,9 +25,9 @@ namespace CompositeVideoMonitor {
             return signalValue / 255.0;
         }
 
-        public Input(string address) {
+        public Input(string address, int maxFrames) {
+            MaxFrames = maxFrames;
             Poller = new NetMQPoller();
-
             Subscriber = new SubscriberSocket();
             Poller.Add(Subscriber);
             Poller.RunAsync();
@@ -38,6 +39,7 @@ namespace CompositeVideoMonitor {
 
         private void ReceiveReady(object _, NetMQSocketEventArgs __) {
             while (Subscriber.TryReceiveFrameBytes(out var buffer)) {
+                if (Queue.Count > buffer.Length * MaxFrames) { continue; }
                 for (int i = 0; i < buffer.Length; i++) {
                     Queue.Enqueue(buffer[i]);
                 }
@@ -50,10 +52,6 @@ namespace CompositeVideoMonitor {
             Poller.Dispose();
             Subscriber.Dispose();
             NetMQConfig.Cleanup(block: false);
-        }
-
-        internal void Skip(double skipped) {
-            // TODO
         }
     }
 }

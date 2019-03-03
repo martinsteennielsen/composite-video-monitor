@@ -24,7 +24,7 @@ namespace CompositeVideoMonitor {
                 return (step * simulatedDotTime, 0);
             } else {
                 double realDotTime = simulatedDotTime / Controls.ZoomT;
-                double dotsPrSimulation = 0.005 / realDotTime;
+                double dotsPrSimulation = TaskWaitTimeMs*0.001 / realDotTime;
                 if (dotsPrSimulation < 1) {
                     await Task.Delay((int)(TaskWaitTimeMs / dotsPrSimulation));
                     return (simulatedDotTime, 0);

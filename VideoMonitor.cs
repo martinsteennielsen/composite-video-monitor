@@ -14,12 +14,12 @@ namespace CompositeVideoMonitor {
             Tube = new Tube(timing);
         }
 
-        internal double SpendTime(double startTime, double endTime) =>
-            Tube.SpendTime(startTime, endTime, compositeSignal: this, hOsc: HOsc, vOsc: VOsc);
+        internal double ElapseTime(double startTime, double endTime) =>
+            Tube.ElapseTime(startTime, endTime, compositeSignal: this, hosc: HOsc, vosc: VOsc);
 
         double ISignal.Get(double time) {
             var res = CompositeInput.Get(time);
-            Sync.SpendTime(time);
+            Sync.ElapseTime(time);
             return res;
         }
     }

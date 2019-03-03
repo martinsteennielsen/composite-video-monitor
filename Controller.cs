@@ -42,9 +42,8 @@ namespace CompositeVideoMonitor {
 
             double startTime = 0;
             while (!canceller.IsCancellationRequested) {
-                var (elapsedTime, skippedTime) = await relax();
-                CompositeInput.Skip(skippedTime);
-                startTime = Monitor.SpendTime(startTime, startTime + elapsedTime);
+                var (elapsedTime, _) = await relax();
+                startTime = Monitor.ElapseTime(startTime, startTime + elapsedTime);
             }
         }
 

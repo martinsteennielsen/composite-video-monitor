@@ -17,11 +17,11 @@ namespace CompositeVideoMonitor {
             VPhaseDetect = new PhaseDetector(blackLevel: timing.SyncTimes.BlackLevel, frequency: timing.VFreq, syncWidth: syncWidth, signal: compositeInput);
         }
 
-        public void SpendTime(double time) {
-            if (HPhaseDetect.TryGetPhase(time, out var hphase)) {
+        public void ElapseTime(double time) {
+            if (HPhaseDetect.ElapseTimeAndTryGetPhase(time, out var hphase)) {
                 HRef.Phase = -hphase;
             }
-            if (VPhaseDetect.TryGetPhase(time, out var vphase)) {
+            if (VPhaseDetect.ElapseTimeAndTryGetPhase(time, out var vphase)) {
                 VRef.Phase = -vphase;
             }
         }
@@ -37,8 +37,7 @@ namespace CompositeVideoMonitor {
                 Frequency = frequency;
             }
 
-            public bool TryGetPhase(double time, out double phase) {
-                phase = 0;
+            public bool ElapseTimeAndTryGetPhase(double time, out double phase) {
                 bool isSyncSig = Signal.Get(time) < BlackLevel;
                 double? syncTime = SpendTime(time, sync: isSyncSig, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
                 if (syncTime != null) {
@@ -47,6 +46,7 @@ namespace CompositeVideoMonitor {
                     if (phase > Math.PI/2) { phase -= Math.PI; }
                     return true;
                 }
+                phase = 0;
                 return false;
             }
 
