@@ -22,7 +22,7 @@ namespace CompositeVideoMonitor {
                 HRef.Phase = -hphase;
             }
             if (VPhaseDetect.TryGetPhase(time, out var vphase)) {
-                VRef.Phase = -hphase;
+                VRef.Phase = -vphase;
             }
         }
 

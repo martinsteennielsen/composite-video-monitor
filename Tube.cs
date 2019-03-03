@@ -11,17 +11,25 @@ namespace CompositeVideoMonitor {
     }
 
     public class Tube {
-        readonly TimingConstants Timing;
+
+        struct FrameSection {
+            public double OldestDotTime;
+            public double NewestDotTime;
+            public List<PhosphorDot> Dots;
+        }
+
+        List<FrameSection> Frame = new List<FrameSection>();
+
         public static readonly double TubeWidth = 0.4;
         public static readonly double TubeHeight = 0.3;
-        readonly double PhosphorGlowTime;
 
+        readonly TimingConstants Timing;
+        readonly double PhosphorGlowTime;
         readonly object GateKeeper = new object();
         readonly double VGain = 30;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
 
-        List<FrameSection> Frame = new List<FrameSection>();
 
         public Tube(TimingConstants timing) {
             Timing = timing;
@@ -40,7 +48,7 @@ namespace CompositeVideoMonitor {
 
         List<FrameSection> CurrentSections() {
             lock (GateKeeper) {
-                return Frame.ToList();
+                return Frame;
             }
         }
 
@@ -89,12 +97,6 @@ namespace CompositeVideoMonitor {
             newDots.AddRange(allDotsGlowing);
             return newDots;
         }
-    }
-
-    struct FrameSection {
-        public double OldestDotTime;
-        public double NewestDotTime;
-        public List<PhosphorDot> Dots;
     }
 
 }

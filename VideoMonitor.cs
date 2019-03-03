@@ -1,10 +1,10 @@
 namespace CompositeVideoMonitor {
 
     public class VideoMonitor : ISignal {
+        public readonly Tube Tube;
         readonly ISignal CompositeInput;
         readonly IPeriodic VOsc, HOsc;
         readonly Sync Sync;
-        public readonly Tube Tube;
 
         public VideoMonitor(TimingConstants timing, ISignal compositeInput) {
             CompositeInput = compositeInput;

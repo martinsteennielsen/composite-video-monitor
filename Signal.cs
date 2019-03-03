@@ -7,14 +7,12 @@ namespace CompositeVideoMonitor {
     }
 
     public interface IPeriodic : ISignal {
-        double Frequency { get; }
+        double Frequency { get; set; }
         double Phase { get; set; }
     }
 
     public class NoiseSignal : ISignal {
         Random Randomizer = new Random();
-        public double Frequency { get; }
-        public double Phase { get; set; }
         public double Get(double time) => Randomizer.NextDouble();
     }
 
