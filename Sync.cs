@@ -30,6 +30,8 @@ namespace CompositeVideoMonitor {
             readonly double SyncWidth, BlackLevel, Frequency;
             readonly ISignal Signal;
 
+            double? SyncStartTime, SyncEndTime;
+
             public PhaseDetector(double blackLevel, double frequency, double syncWidth, ISignal signal) {
                 BlackLevel = blackLevel;
                 Signal = signal;
@@ -38,34 +40,22 @@ namespace CompositeVideoMonitor {
             }
 
             public bool ElapseTimeAndTryGetPhase(double time, out double phase) {
-                bool isSyncSig = Signal.Get(time) < BlackLevel;
-                double? syncTime = SpendTime(time, sync: isSyncSig, min: 0.9 * SyncWidth, max: 1.1 * SyncWidth);
-                if (syncTime != null) {
-                    SyncStart = SyncEnd = null;
-                    phase = Math.PI * syncTime.Value * Frequency;
-                    if (phase > Math.PI/2) { phase -= Math.PI; }
-                    return true;
-                }
-                phase = 0;
-                return false;
-            }
-
-            public double? SyncStart;
-            public double? SyncEnd;
-
-            double? SpendTime(double time, bool sync, double min, double max) {
-                if (SyncStart == null && sync) SyncStart = time;
-                if (SyncStart == null) { return null; }
-                if (SyncEnd == null && !sync) SyncEnd = time;
-                if (SyncEnd == null) { return null; }
-                var dur = SyncEnd.Value - SyncStart.Value;
-                if (dur < 0.9 * SyncWidth || dur > 1.1 * SyncWidth) {
-                    SyncStart = SyncEnd = null;
-                    return null;
-                } else {
-                    return SyncStart % (1d / Frequency);
-                }
-
+                phase =0;
+                bool sync = Signal.Get(time) < BlackLevel;                
+                if (SyncStartTime == null && sync) SyncStartTime = time;
+                if (SyncStartTime == null) { return false; }
+                if (SyncEndTime == null && !sync) SyncEndTime = time;
+                if (SyncEndTime == null) { return false; }
+                var syncDuration = SyncEndTime.Value - SyncStartTime.Value;
+                if (syncDuration < 0.9 * SyncWidth || syncDuration > 1.1 * SyncWidth) {
+                    SyncStartTime = SyncEndTime = null;
+                    return false;
+                } 
+                double syncTime = SyncStartTime.Value % (1d / Frequency);
+                phase = Math.PI * syncTime * Frequency;
+                if (phase > Math.PI/2) { phase -= Math.PI; }
+                SyncStartTime = SyncEndTime = null;
+                return true;
             }
         }
     }
