@@ -6,7 +6,7 @@ namespace CompositeVideoMonitor
 
         static void Main(string[] args) {
             using (var compositeInput = new Input(address: "tcp://127.0.0.1:10001", maxFrames: 8)) {
-                new Controller(new PalTiming(), compositeInput).Run(new CancellationTokenSource());
+                new Controller(TvNorm.Pal, compositeInput).Run(new CancellationTokenSource());
             }
         }
     }

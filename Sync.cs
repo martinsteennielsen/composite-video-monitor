@@ -6,15 +6,15 @@ namespace CompositeVideoMonitor {
     public class Sync {
         readonly IPeriodic HRef, VRef;
         readonly PhaseDetector HPhaseDetect, VPhaseDetect;
-        readonly TimingConstants Timing;
+        readonly TvNorm TvNorm;
 
-        public Sync(TimingConstants timing, ISignal compositeInput, IPeriodic vref, IPeriodic href) {
+        public Sync(TvNorm tvNorm, ISignal compositeInput, IPeriodic vref, IPeriodic href) {
             HRef = href;
             VRef = vref;
-            Timing = timing;
-            HPhaseDetect = new PhaseDetector(blackLevel: timing.SyncTimes.BlackLevel, frequency: timing.HFreq, syncWidth: timing.SyncTimes.LineSyncTime, signal: compositeInput);
-            double syncWidth = 0.5 * timing.LineTime - timing.SyncTimes.LineSyncTime;
-            VPhaseDetect = new PhaseDetector(blackLevel: timing.SyncTimes.BlackLevel, frequency: timing.VFreq, syncWidth: syncWidth, signal: compositeInput);
+            TvNorm = tvNorm;
+            HPhaseDetect = new PhaseDetector(blackLevel: tvNorm.Sync.BlackLevel, frequency: tvNorm.Frequencies.Horizontal, syncWidth: tvNorm.Sync.LineSyncTime, signal: compositeInput);
+            double syncWidth = 0.5 * tvNorm.Frequencies.LineTime - tvNorm.Sync.LineSyncTime;
+            VPhaseDetect = new PhaseDetector(blackLevel: tvNorm.Sync.BlackLevel, frequency: tvNorm.Frequencies.Vertical, syncWidth: syncWidth, signal: compositeInput);
         }
 
         public void ElapseTime(double time) {
@@ -41,7 +41,7 @@ namespace CompositeVideoMonitor {
 
             public bool ElapseTimeAndTryGetPhase(double time, out double phase) {
                 phase =0;
-                bool sync = Signal.Get(time) < BlackLevel;                
+                bool sync = Signal.Get(time) < 0.5*BlackLevel;                
                 if (SyncStartTime == null && sync) SyncStartTime = time;
                 if (SyncStartTime == null) { return false; }
                 if (SyncEndTime == null && !sync) SyncEndTime = time;

@@ -23,7 +23,7 @@ namespace CompositeVideoMonitor {
         public static readonly double TubeWidth = 0.4;
         public static readonly double TubeHeight = 0.3;
 
-        readonly TimingConstants Timing;
+        readonly TvFrequencies Timing;
         readonly double PhosphorGlowTime;
         readonly object GateKeeper = new object();
         readonly double VGain = 30;
@@ -31,7 +31,7 @@ namespace CompositeVideoMonitor {
         readonly double FullDeflectionVoltage = 40;
 
 
-        public Tube(TimingConstants timing) {
+        public Tube(TvFrequencies timing) {
             Timing = timing;
             PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
         }

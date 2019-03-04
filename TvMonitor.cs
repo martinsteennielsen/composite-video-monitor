@@ -1,17 +1,17 @@
 namespace CompositeVideoMonitor {
 
-    public class VideoMonitor : ISignal {
-        public readonly Tube Tube;
+    public class TvMonitor : ISignal {
+        readonly Tube Tube;
         readonly ISignal CompositeInput;
         readonly IPeriodic VOsc, HOsc;
         readonly Sync Sync;
 
-        public VideoMonitor(TimingConstants timing, ISignal compositeInput) {
+        public TvMonitor(TvNorm tvNorm, Tube tube, ISignal compositeInput) {
             CompositeInput = compositeInput;
-            VOsc = new SawtoothSignal { Frequency = timing.VFreq, Phase = 0 };
-            HOsc = new SawtoothSignal { Frequency = timing.HFreq, Phase = 0 };
-            Sync = new Sync(timing, compositeInput, VOsc, HOsc);
-            Tube = new Tube(timing);
+            Tube = tube;
+            VOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Vertical, Phase = 0 };
+            HOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Horizontal, Phase = 0 };
+            Sync = new Sync(tvNorm, compositeInput, VOsc, HOsc);
         }
 
         internal double ElapseTime(double startTime, double endTime) =>

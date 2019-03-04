@@ -6,22 +6,23 @@ namespace CompositeVideoMonitor {
 
     public class Controller {
         readonly Input CompositeInput;
-        readonly VideoMonitor Monitor;
+        readonly TvMonitor Monitor;
         readonly Renderer Renderer;
         readonly Controls Controls;
-        readonly TimingConstants Timing;
+        readonly TvNorm TvNorm;
 
         double? ZoomTStop;
         bool FollowCursor = false;
         int CurrentSingleStep = 0;
         bool CursorOn = false;
 
-        public Controller(TimingConstants timing, Input compositeSignal) {
-            Timing = timing;
+        public Controller(TvNorm tvNorm, Input compositeSignal) {
+            TvNorm = tvNorm;
             Controls = new Controls();
             CompositeInput = compositeSignal;
-            Monitor = new VideoMonitor(timing, CompositeInput);
-            Renderer = new Renderer(Controls, ShowCursor, Monitor.Tube, timing, 600, 600, "PAL");
+            var tube = new Tube(tvNorm.Frequencies);
+            Monitor = new TvMonitor(tvNorm, tube, CompositeInput);
+            Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm.Frequencies, 600, 600, "PAL");
             Renderer.KeyDown +=  (_, e) => ProcessKey(e);
         }
 
@@ -32,8 +33,8 @@ namespace CompositeVideoMonitor {
         }
 
         async Task Run(CancellationToken canceller) {
-            var realTime = new RealTimeKeeper(Timing, Controls);
-            var artificialTime = new ArtificialTimeKeeper(Timing, Controls);
+            var realTime = new RealTimeKeeper(TvNorm.Frequencies, Controls);
+            var artificialTime = new ArtificialTimeKeeper(TvNorm.Frequencies, Controls);
 
             async Task<(double elapsedTime, double skippedTime)> relax() => 
                 Controls.ZoomT == 1 

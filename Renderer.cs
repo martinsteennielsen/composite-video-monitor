@@ -7,7 +7,7 @@ using System.Linq;
 namespace CompositeVideoMonitor
 {
     public class Renderer : GameWindow {
-        readonly TimingConstants Timing;
+        readonly TvFrequencies Timing;
         readonly Tube CRT;
         readonly Controls Controls;
         readonly Func<double, double, bool> ShowCursor;
@@ -16,14 +16,14 @@ namespace CompositeVideoMonitor
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight;
 
-        public Renderer(Controls controls, Func<double, double, bool> showCursor, Tube tube, TimingConstants timing, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+        public Renderer(Controls controls, Func<double, double, bool> showCursor, Tube tube, TvFrequencies timing, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
             Timing = timing;
             Controls = controls;
             CRT = tube;
             ShowCursor = showCursor;
 
-            var hOsc = new SawtoothSignal { Frequency = timing.HFreq };
-            var vOsc = new SawtoothSignal { Frequency = timing.VFreq };
+            var hOsc = new SawtoothSignal { Frequency = timing.Horizontal };
+            var vOsc = new SawtoothSignal { Frequency = timing.Vertical };
             ScaleX = 2.0 / Tube.TubeWidth;
             ScaleY = 2.0 / Tube.TubeHeight;
             DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(Timing.DotTime)) - CRT.HPos(hOsc.Get(0)));

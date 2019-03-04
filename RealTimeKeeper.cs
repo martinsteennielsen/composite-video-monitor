@@ -7,11 +7,11 @@ namespace CompositeVideoMonitor {
     public class RealTimeKeeper {
 
         private const int TaskWaitTimeMs = 5;
-        readonly TimingConstants Timing;
+        readonly TvFrequencies Timing;
         readonly Controls Controls;
         readonly Stopwatch Watch = Stopwatch.StartNew();
         
-        public RealTimeKeeper(TimingConstants timing, Controls controls) {
+        public RealTimeKeeper(TvFrequencies timing, Controls controls) {
             Timing = timing;
             Controls = controls;
         }
@@ -28,7 +28,7 @@ namespace CompositeVideoMonitor {
                 return (elapsed, skiptime);
             }
             double startTime = lastTime;
-            double simulatedDotTime = 1d / Timing.BandwidthFreq;
+            double simulatedDotTime = 1d / Timing.Bandwidth;
                 double dotsPrSimulation = (TaskWaitTimeMs * 0.001) / simulatedDotTime;
                 if (dotsPrSimulation < 1) {
                     await Task.Delay((int)(TaskWaitTimeMs / dotsPrSimulation));
