@@ -20,15 +20,15 @@ namespace CompositeVideoMonitor {
 
         List<FrameSection> Frame = new List<FrameSection>();
 
-        public static readonly double TubeWidth = 0.4;
-        public static readonly double TubeHeight = 0.3;
 
         readonly TvFrequencies Timing;
         readonly double PhosphorGlowTime;
         readonly object GateKeeper = new object();
-        readonly double VGain = 30;
+        readonly double VGain = 40;
         readonly double HGain = 40;
         readonly double FullDeflectionVoltage = 40;
+        readonly double TubeWidth = 0.4;
+        readonly double TubeHeight = 0.3;
 
 
         public Tube(TvFrequencies timing) {

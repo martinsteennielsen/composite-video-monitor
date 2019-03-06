@@ -22,7 +22,7 @@ namespace CompositeVideoMonitor {
             CompositeInput = compositeSignal;
             var tube = new Tube(tvNorm.Frequencies);
             Monitor = new TvMonitor(tvNorm, tube, CompositeInput);
-            Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm.Frequencies, 600, 600, "PAL");
+            Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm, 600, 600, "PAL");
             Renderer.KeyDown +=  (_, e) => ProcessKey(e);
         }
 
@@ -49,9 +49,13 @@ namespace CompositeVideoMonitor {
         }
 
         void ProcessKey(KeyboardKeyEventArgs e) {
-            double ds = Controls.TubeViewSize * 0.05;
+            double ds = 0.01;
             if (e.Key == Key.Escape) {
                 Renderer.Exit();
+            } else if (e.Key == Key.B && e.Shift) {
+                Controls.Brightness *= 1.05;
+            } else if (e.Key == Key.B && !e.Shift) {
+                Controls.Brightness /= 1.05;
             } else if (e.Key == Key.X && e.Shift) {
                 Controls.TubeViewX -= ds;
             } else if (e.Key == Key.X && !e.Shift) {
@@ -61,9 +65,9 @@ namespace CompositeVideoMonitor {
             } else if (e.Key == Key.Y && !e.Shift) {
                 Controls.TubeViewY += ds;
             } else if (e.Key == Key.Z && e.Shift) {
-                Controls.TubeViewSize *= 1.05;
+                Controls.TubeZoom *= 1.05;
             } else if (e.Key == Key.Z && !e.Shift) {
-                Controls.TubeViewSize /= 1.05;
+                Controls.TubeZoom /= 1.05;
             } else if (e.Key == Key.F && e.Shift) {
                 Controls.Focus *= 1.05;
             } else if (e.Key == Key.F && !e.Shift) {
@@ -83,10 +87,12 @@ namespace CompositeVideoMonitor {
             } else if (e.Key == Key.End) {
                 CursorOn = false;
                 FollowCursor = false;
-                Controls.TubeViewSize = Tube.TubeWidth;
+                Controls.TubeZoom = 1;
                 Controls.TubeViewX = 0;
                 Controls.TubeViewY = 0;
                 Controls.ZoomT = 1;
+                Controls.Brightness = 1;
+                Controls.Focus = 1;
             }
         }
 
