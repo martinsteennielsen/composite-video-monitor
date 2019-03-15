@@ -33,7 +33,7 @@ namespace CompositeVideoMonitor {
 
         public Tube(TvFrequencies timing) {
             Timing = timing;
-            PhosphorGlowTime = timing.LineTime * 0.5 + timing.FrameTime + 2d * timing.DotTime;
+            PhosphorGlowTime = 2*timing.FrameTime;
         }
 
         public double HPos(double volt) =>
@@ -54,7 +54,7 @@ namespace CompositeVideoMonitor {
 
         public double ElapseTime(double startTime, double endTime, ISignal compositeSignal, ISignal hosc, ISignal vosc) {
             var (sections, simulatedEndTime) = CalculateSections(compositeSignal, hosc, vosc, time: startTime, endTime: endTime);
-            var newFrame = RemoveDots(CurrentSections(), simulatedEndTime);
+            var newFrame = RemoveDots(CurrentSections(), simulatedEndTime-Timing.DotTime);
             newFrame.AddRange(sections);
             lock (GateKeeper) {
                 Frame = newFrame;
@@ -87,11 +87,11 @@ namespace CompositeVideoMonitor {
             var dimmestDotTime = time - PhosphorGlowTime;
 
             var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime > dimmestDotTime).ToList();
-            var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime <= dimmestDotTime);
+            var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime < dimmestDotTime);
 
             var newDots = new List<FrameSection>();
             foreach (var dimmingDots in someDotsGlowing) {
-                newDots.Add(new FrameSection { Dots = dimmingDots.Dots.Where(x => x.Time > dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
+                newDots.Add(new FrameSection { Dots = dimmingDots.Dots.Where(x => x.Time >= dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
             }
             var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime > dimmestDotTime);
             newDots.AddRange(allDotsGlowing);

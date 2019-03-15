@@ -34,8 +34,6 @@ namespace CompositeVideoMonitor
             OffSetX = -(CRT.HPos(hOsc.Get(TvNorm.Sync.LineBlankingTime- TvNorm.Sync.FrontPorchTime))) / ScaleX;
             DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(TvNorm.Frequencies.DotTime)) - CRT.HPos(hOsc.Get(0)));
             DotHeight = 0.5 * ScaleY * (CRT.VPos(vOsc.Get(TvNorm.Frequencies.LineTime)) - CRT.VPos(vOsc.Get(0)));
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactorSrc.SrcColor, BlendingFactorDest.OneMinusDstAlpha);
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
@@ -50,12 +48,17 @@ namespace CompositeVideoMonitor
             GL.Begin(PrimitiveType.Quads);
 
             PhosphorDot last = allDots.Last();
+            PhosphorDot first = allDots.First();
             if (ShowCursor(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt))) {
-                GL.Color4(1d, 0d, 0d, 0.1d);
-                RenderDot(last, Controls.Focus * 1.4);
-                PhosphorDot first = allDots.First();
-                GL.Color4(0d, 01d, 0d, 0.1d);
-                RenderDot(first, Controls.Focus * 1.4);
+                GL.Color3(1d, 0d, 0d);
+                RenderDot(last, Controls.Focus);
+                GL.Color3(0d, 01d, 0d);
+                RenderDot(first, Controls.Focus);
+            } else {
+                GL.Color3(first.Brightness, first.Brightness, first.Brightness);
+                RenderDot(first, Controls.Focus);
+                GL.Color3(last.Brightness, last.Brightness, last.Brightness);
+                RenderDot(last, Controls.Focus);
             }
 
             foreach (var dot in allDots.Skip(1).Take(allDots.Count - 2)) {
@@ -73,8 +76,8 @@ namespace CompositeVideoMonitor
             double yPos = -Controls.TubeZoom * ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
             double dotWidth = focus * DotWidth * Controls.TubeZoom;
             double dotHeight = focus * DotHeight * Controls.TubeZoom;
-            GL.Vertex2(xPos - dotWidth, yPos + dotHeight);
-            GL.Vertex2(xPos + dotWidth, yPos + dotHeight);
+            GL.Vertex2(xPos - dotWidth, yPos);
+            GL.Vertex2(xPos + dotWidth, yPos);
             GL.Vertex2(xPos + dotWidth, yPos - dotHeight);
             GL.Vertex2(xPos - dotWidth, yPos - dotHeight);
         }

@@ -28,8 +28,7 @@ namespace CompositeVideoMonitor {
                 return (elapsed, skiptime);
             }
             double startTime = lastTime;
-            double simulatedDotTime = 1d / Timing.Bandwidth;
-                double dotsPrSimulation = (TaskWaitTimeMs * 0.001) / simulatedDotTime;
+                double dotsPrSimulation = (TaskWaitTimeMs * 0.001) / Timing.DotTime;
                 if (dotsPrSimulation < 1) {
                     await Task.Delay((int)(TaskWaitTimeMs / dotsPrSimulation));
                     lastTime = Watch.Elapsed.TotalSeconds;
