@@ -22,7 +22,7 @@ namespace CompositeVideoMonitor {
             CompositeInput = compositeSignal;
             var tube = new Tube(tvNorm.Frequencies);
             Monitor = new TvMonitor(tvNorm, tube, CompositeInput);
-            Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm, 600, 600, "PAL");
+            Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm, 640, 625, "PAL");
             Renderer.KeyDown +=  (_, e) => ProcessKey(e);
         }
 
@@ -92,7 +92,7 @@ namespace CompositeVideoMonitor {
                 Controls.TubeViewY = 0;
                 Controls.ZoomT = 1;
                 Controls.Brightness = 1;
-                Controls.Focus = 1;
+                Controls.Focus = 1.01;
             }
         }
 

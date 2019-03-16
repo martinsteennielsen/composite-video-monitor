@@ -86,14 +86,14 @@ namespace CompositeVideoMonitor {
         List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {
             var dimmestDotTime = time - PhosphorGlowTime;
 
-            var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime > dimmestDotTime).ToList();
+            var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime >= dimmestDotTime).ToList();
             var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime < dimmestDotTime);
 
             var newDots = new List<FrameSection>();
             foreach (var dimmingDots in someDotsGlowing) {
                 newDots.Add(new FrameSection { Dots = dimmingDots.Dots.Where(x => x.Time >= dimmestDotTime).ToList(), OldestDotTime = dimmestDotTime, NewestDotTime = dimmingDots.NewestDotTime });
             }
-            var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime > dimmestDotTime);
+            var allDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime >= dimmestDotTime);
             newDots.AddRange(allDotsGlowing);
             return newDots;
         }
