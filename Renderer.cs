@@ -11,7 +11,7 @@ namespace CompositeVideoMonitor
         readonly Tube CRT;
         readonly Controls Controls;
         readonly Func<double, double, bool> ShowCursor;
-
+        readonly int InterlacedScaler;
 
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight, OffSetX, VisibleWidth, VisibleHeight;
@@ -21,6 +21,7 @@ namespace CompositeVideoMonitor
             Controls = controls;
             CRT = tube;
             ShowCursor = showCursor;
+            InterlacedScaler = tvNorm.InterLaced ? 1 : 2;
 
             var hOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Horizontal };
             var vOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Vertical };
@@ -75,7 +76,7 @@ namespace CompositeVideoMonitor
             double xPos = Controls.TubeZoom * ScaleX * (Controls.TubeViewX + CRT.HPos(dot.HVolt) - OffSetX);
             double yPos = -Controls.TubeZoom * ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
             double dotWidth = focus * DotWidth * Controls.TubeZoom;
-            double dotHeight = focus * DotHeight * Controls.TubeZoom;
+            double dotHeight = InterlacedScaler*focus * DotHeight * Controls.TubeZoom;
             GL.Vertex2(xPos - dotWidth, yPos);
             GL.Vertex2(xPos + dotWidth, yPos);
             GL.Vertex2(xPos + dotWidth, yPos - dotHeight);
