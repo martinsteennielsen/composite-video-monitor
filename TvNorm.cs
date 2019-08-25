@@ -1,13 +1,15 @@
 ﻿namespace CompositeVideoMonitor {
 
     public struct TvNorm {
-        public static TvNorm Pal => new TvNorm ( frequencies : TvFrequencies.Pal, sync : TvSync.Pal );
+        public static TvNorm iPal => new TvNorm(frequencies: TvFrequencies.iPal, sync: TvSync.Pal, interlaced: true);
+        public static TvNorm pPal => new TvNorm(frequencies: TvFrequencies.pPal, sync: TvSync.Pal, interlaced: false);
 
         public readonly TvSync Sync;
         public readonly TvFrequencies Frequencies;
+        public readonly bool InterLaced;
 
-        TvNorm(TvFrequencies frequencies, TvSync sync) {
-            Frequencies = frequencies; Sync = sync;
+        TvNorm(TvFrequencies frequencies, TvSync sync, bool interlaced) {
+            Frequencies = frequencies; Sync = sync; InterLaced = interlaced;
         }
     }
 
@@ -30,7 +32,8 @@
 
     public struct TvFrequencies {
 
-        public static TvFrequencies Pal => new TvFrequencies(horizontal: 15625, vertical: 50, bandwidth: 5e6);
+        public static TvFrequencies iPal => new TvFrequencies(horizontal: 15625, vertical: 50, bandwidth: 5e6);
+        public static TvFrequencies pPal => new TvFrequencies(horizontal: 15625, vertical: 25, bandwidth: 5e6);
 
         public readonly double Horizontal;
         public readonly double Vertical;

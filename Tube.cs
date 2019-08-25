@@ -31,9 +31,9 @@ namespace CompositeVideoMonitor {
         readonly double TubeHeight = 0.3;
 
 
-        public Tube(TvFrequencies timing) {
+        public Tube(TvFrequencies timing, bool interlaced) {
             Timing = timing;
-            PhosphorGlowTime = 2*timing.FrameTime;
+            PhosphorGlowTime = (interlaced ? 2 : 1) * timing.FrameTime;
         }
 
         public double HPos(double volt) =>
