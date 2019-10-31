@@ -1,15 +1,14 @@
 ﻿namespace CompositeVideoMonitor {
 
     public struct TvNorm {
-        public static TvNorm iPal => new TvNorm(frequencies: TvFrequencies.iPal, sync: TvSync.Pal, interlaced: true);
-        public static TvNorm pPal => new TvNorm(frequencies: TvFrequencies.pPal, sync: TvSync.Pal, interlaced: false);
+        public static TvNorm iPal => new TvNorm(frequencies: TvFrequencies.iPal, sync: TvSync.Pal);
+        public static TvNorm pPal => new TvNorm(frequencies: TvFrequencies.pPal, sync: TvSync.Pal);
 
         public readonly TvSync Sync;
         public readonly TvFrequencies Frequencies;
-        public readonly bool InterLaced;
 
-        TvNorm(TvFrequencies frequencies, TvSync sync, bool interlaced) {
-            Frequencies = frequencies; Sync = sync; InterLaced = interlaced;
+        TvNorm(TvFrequencies frequencies, TvSync sync) {
+            Frequencies = frequencies; Sync = sync;
         }
     }
 
@@ -32,7 +31,7 @@
 
     public struct TvFrequencies {
 
-        public static TvFrequencies iPal => new TvFrequencies(horizontal: 15625, vertical: 50, bandwidth: 5e6);
+        public static TvFrequencies iPal => new TvFrequencies(horizontal: 15625, vertical: 50, bandwidth: 5e6, frameTime: 1.0/25);
         public static TvFrequencies pPal => new TvFrequencies(horizontal: 15625, vertical: 25, bandwidth: 5e6);
 
         public readonly double Horizontal;
@@ -42,9 +41,9 @@
         public readonly double FrameTime;
         public readonly double LineTime;
 
-        TvFrequencies(double horizontal, double vertical, double bandwidth) {
+        TvFrequencies(double horizontal, double vertical, double bandwidth, double? frameTime = null) {
             Horizontal = horizontal; Vertical = vertical; Bandwidth = bandwidth;
-            LineTime = 1d / Horizontal; FrameTime = 1d / Vertical; DotTime = 1d / Bandwidth;
+            LineTime = 1d / Horizontal; FrameTime = frameTime ?? (1d / Vertical); DotTime = 1d / Bandwidth;
         }
     }
 }

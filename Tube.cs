@@ -6,7 +6,7 @@ namespace CompositeVideoMonitor {
     public struct PhosphorDot {
         public double VVolt;
         public double HVolt;
-        public double Time;
+        public double Time;     
         public double Brightness;
     }
 
@@ -31,9 +31,9 @@ namespace CompositeVideoMonitor {
         readonly double TubeHeight = 0.3;
 
 
-        public Tube(TvFrequencies timing, bool interlaced) {
+        public Tube(TvFrequencies timing) {
             Timing = timing;
-            PhosphorGlowTime = (interlaced ? 2 : 1) * timing.FrameTime;
+            PhosphorGlowTime = timing.FrameTime;
         }
 
         public double HPos(double volt) =>

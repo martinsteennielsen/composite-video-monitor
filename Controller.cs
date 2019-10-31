@@ -20,7 +20,7 @@ namespace CompositeVideoMonitor {
             TvNorm = tvNorm;
             Controls = new Controls();
             CompositeInput = compositeSignal;
-            var tube = new Tube(tvNorm.Frequencies, interlaced: tvNorm.InterLaced);
+            var tube = new Tube(tvNorm.Frequencies);
             Monitor = new TvMonitor(tvNorm, tube, CompositeInput);
             Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm, 640, 625, "PAL");
             Renderer.KeyDown +=  (_, e) => ProcessKey(e);

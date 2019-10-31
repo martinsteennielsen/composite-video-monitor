@@ -11,7 +11,6 @@ namespace CompositeVideoMonitor
         readonly Tube CRT;
         readonly Controls Controls;
         readonly Func<double, double, bool> ShowCursor;
-        readonly int InterlacedScaler;
 
         readonly double ScaleX, ScaleY;
         readonly double DotWidth, DotHeight, OffSetX, VisibleWidth, VisibleHeight;
@@ -21,10 +20,9 @@ namespace CompositeVideoMonitor
             Controls = controls;
             CRT = tube;
             ShowCursor = showCursor;
-            InterlacedScaler = tvNorm.InterLaced ? 1 : 2;
 
             var hOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Horizontal };
-            var vOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Vertical };
+            var vOsc = new SawtoothSignal { Frequency = 1/tvNorm.Frequencies.FrameTime };
             double minX = CRT.HPos(hOsc.Get(TvNorm.Sync.LineBlankingTime-TvNorm.Sync.FrontPorchTime));
             double maxX = CRT.HPos(hOsc.Get(TvNorm.Frequencies.LineTime - TvNorm.Sync.FrontPorchTime));
             VisibleWidth = maxX - minX;
@@ -33,8 +31,8 @@ namespace CompositeVideoMonitor
             VisibleHeight = maxY - minY;
             ScaleY = ScaleX = 2.0 / VisibleWidth;
             OffSetX = -(CRT.HPos(hOsc.Get(TvNorm.Sync.LineBlankingTime- TvNorm.Sync.FrontPorchTime))) / ScaleX;
-            DotWidth = 0.5 * ScaleX * (CRT.HPos(hOsc.Get(TvNorm.Frequencies.DotTime)) - CRT.HPos(hOsc.Get(0)));
-            DotHeight = 0.5 * ScaleY * (CRT.VPos(vOsc.Get(TvNorm.Frequencies.LineTime)) - CRT.VPos(vOsc.Get(0)));
+            DotWidth = ScaleX * (CRT.HPos(hOsc.Get(TvNorm.Frequencies.DotTime)) - CRT.HPos(hOsc.Get(0)));
+            DotHeight = ScaleY * (CRT.VPos(vOsc.Get(TvNorm.Frequencies.LineTime)) - CRT.VPos(vOsc.Get(0)));
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
@@ -75,12 +73,12 @@ namespace CompositeVideoMonitor
         private void RenderDot(PhosphorDot dot, double focus) {
             double xPos = Controls.TubeZoom * ScaleX * (Controls.TubeViewX + CRT.HPos(dot.HVolt) - OffSetX);
             double yPos = -Controls.TubeZoom * ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
-            double dotWidth = focus * DotWidth * Controls.TubeZoom;
-            double dotHeight = InterlacedScaler*focus * DotHeight * Controls.TubeZoom;
-            GL.Vertex2(xPos - dotWidth, yPos);
-            GL.Vertex2(xPos + dotWidth, yPos);
-            GL.Vertex2(xPos + dotWidth, yPos - dotHeight);
-            GL.Vertex2(xPos - dotWidth, yPos - dotHeight);
+            double halfDotWidth = 0.5 * focus * DotWidth * Controls.TubeZoom;
+            double halfDotHeight = 0.5 * focus * DotHeight * Controls.TubeZoom;
+            GL.Vertex2(xPos - halfDotWidth, yPos - halfDotHeight);
+            GL.Vertex2(xPos + halfDotWidth, yPos - halfDotHeight);
+            GL.Vertex2(xPos + halfDotWidth, yPos + halfDotHeight);
+            GL.Vertex2(xPos - halfDotWidth, yPos + halfDotHeight);
         }
     }
 }
