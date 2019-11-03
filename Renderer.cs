@@ -4,35 +4,17 @@ using OpenTK.Graphics.OpenGL;
 using System;
 using System.Linq;
 
-namespace CompositeVideoMonitor
-{
+namespace CompositeVideoMonitor {
+    
     public class Renderer : GameWindow {
-        readonly TvNorm TvNorm;
-        readonly Tube CRT;
+        readonly Func<Picture> GetPicture;
         readonly Controls Controls;
         readonly Func<double, double, bool> ShowCursor;
 
-        readonly double ScaleX, ScaleY;
-        readonly double DotWidth, DotHeight, OffSetX, VisibleWidth, VisibleHeight;
-
-        public Renderer(Controls controls, Func<double, double, bool> showCursor, Tube tube, TvNorm tvNorm, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
-            TvNorm = tvNorm;
+        public Renderer(Controls controls, Func<Picture> getPicture, Func<double, double, bool> showCursor, int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+            GetPicture = getPicture;
             Controls = controls;
-            CRT = tube;
             ShowCursor = showCursor;
-
-            var hOsc = new SawtoothSignal { Frequency = tvNorm.Frequencies.Horizontal };
-            var vOsc = new SawtoothSignal { Frequency = 1/tvNorm.Frequencies.FrameTime };
-            double minX = CRT.HPos(hOsc.Get(TvNorm.Sync.LineBlankingTime-TvNorm.Sync.FrontPorchTime));
-            double maxX = CRT.HPos(hOsc.Get(TvNorm.Frequencies.LineTime - TvNorm.Sync.FrontPorchTime));
-            VisibleWidth = maxX - minX;
-            double minY = CRT.VPos(vOsc.Get(25*TvNorm.Frequencies.LineTime));
-            double maxY = CRT.VPos(vOsc.Get(TvNorm.Frequencies.FrameTime - 10 * TvNorm.Frequencies.LineTime));
-            VisibleHeight = maxY - minY;
-            ScaleY = ScaleX = 2.0 / VisibleWidth;
-            OffSetX = -(CRT.HPos(hOsc.Get(TvNorm.Sync.LineBlankingTime- TvNorm.Sync.FrontPorchTime))) / ScaleX;
-            DotWidth = ScaleX * (CRT.HPos(hOsc.Get(TvNorm.Frequencies.DotTime)) - CRT.HPos(hOsc.Get(0)));
-            DotHeight = ScaleY * (CRT.VPos(vOsc.Get(TvNorm.Frequencies.LineTime)) - CRT.VPos(vOsc.Get(0)));
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
@@ -41,40 +23,43 @@ namespace CompositeVideoMonitor
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.Flush();
 
-            var allDots = CRT.GetPicture();
-            if (!allDots.Any()) { return; }
-
+            var picture = GetPicture();
+            if (!picture.Dots.Any()) { return; }
+            Title = picture.Info;
             GL.Begin(PrimitiveType.Quads);
 
-            PhosphorDot last = allDots.Last();
-            PhosphorDot first = allDots.First();
-            if (ShowCursor(CRT.HPos(last.HVolt), CRT.VPos(last.VVolt))) {
+            void render(PhosphorDot dot) =>
+                RenderDot(dot, Controls.Focus, picture.DotWidth, picture.DotHeight,scale: 2.0/picture.Height);
+
+            PhosphorDot last = picture.Dots.Last();
+            PhosphorDot first = picture.Dots.First();
+            if (ShowCursor(last.HPos, last.VPos)) {
                 GL.Color3(1d, 0d, 0d);
-                RenderDot(last, Controls.Focus);
+                render(last);
                 GL.Color3(0d, 01d, 0d);
-                RenderDot(first, Controls.Focus);
+                render(first);
             } else {
                 GL.Color3(first.Brightness, first.Brightness, first.Brightness);
-                RenderDot(first, Controls.Focus);
+                render(first);
                 GL.Color3(last.Brightness, last.Brightness, last.Brightness);
-                RenderDot(last, Controls.Focus);
+                render(last);
             }
 
-            foreach (var dot in allDots.Skip(1).Take(allDots.Count - 2)) {
+            foreach (var dot in picture.Dots.Skip(1).Take(picture.Dots.Count - 2)) {
                 var brightness = dot.Brightness * Controls.Brightness;
                 GL.Color3(brightness, brightness, brightness);
-                RenderDot(dot, Controls.Focus);
+                render(dot);
             }
             GL.End();
 
             SwapBuffers();
         }
 
-        private void RenderDot(PhosphorDot dot, double focus) {
-            double xPos = Controls.TubeZoom * ScaleX * (Controls.TubeViewX + CRT.HPos(dot.HVolt) - OffSetX);
-            double yPos = -Controls.TubeZoom * ScaleY * (Controls.TubeViewY + CRT.VPos(dot.VVolt));
-            double halfDotWidth = 0.5 * focus * DotWidth * Controls.TubeZoom;
-            double halfDotHeight = 0.5 * focus * DotHeight * Controls.TubeZoom;
+        private void RenderDot(PhosphorDot dot, double focus, double w, double h, double scale) {
+            double xPos = scale * Controls.TubeZoom * (Controls.TubeViewX + dot.HPos);
+            double yPos = scale * -Controls.TubeZoom * (Controls.TubeViewY + dot.VPos);
+            double halfDotWidth = scale * 0.5 * focus * w * Controls.TubeZoom;
+            double halfDotHeight = scale * 0.5 * focus * h * Controls.TubeZoom;
             GL.Vertex2(xPos - halfDotWidth, yPos - halfDotHeight);
             GL.Vertex2(xPos + halfDotWidth, yPos - halfDotHeight);
             GL.Vertex2(xPos + halfDotWidth, yPos + halfDotHeight);

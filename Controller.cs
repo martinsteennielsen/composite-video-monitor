@@ -6,10 +6,9 @@ namespace CompositeVideoMonitor {
 
     public class Controller {
         readonly Input CompositeInput;
-        readonly TvMonitor Monitor;
+        readonly TvMonitor TvMonitor;
         readonly Renderer Renderer;
         readonly Controls Controls;
-        readonly TvNorm TvNorm;
 
         double? ZoomTStop;
         bool FollowCursor = false;
@@ -17,12 +16,11 @@ namespace CompositeVideoMonitor {
         bool CursorOn = false;
 
         public Controller(TvNorm tvNorm, Input compositeSignal) {
-            TvNorm = tvNorm;
-            Controls = new Controls();
             CompositeInput = compositeSignal;
-            var tube = new Tube(tvNorm.Frequencies);
-            Monitor = new TvMonitor(tvNorm, tube, CompositeInput);
-            Renderer = new Renderer(Controls, ShowCursor, tube, tvNorm, 640, 625, "PAL");
+            Controls = new Controls() { TvNorm = tvNorm };
+            var tube = new Tube(Controls);
+            TvMonitor = new TvMonitor(Controls, tube, CompositeInput);
+            Renderer = new Renderer(Controls, TvMonitor.GetPicture, ShowCursor, 800, 600, "PAL");
             Renderer.KeyDown +=  (_, e) => ProcessKey(e);
         }
 
@@ -33,8 +31,8 @@ namespace CompositeVideoMonitor {
         }
 
         async Task Run(CancellationToken canceller) {
-            var realTime = new RealTimeKeeper(TvNorm.Frequencies, Controls);
-            var artificialTime = new ArtificialTimeKeeper(TvNorm.Frequencies, Controls);
+            var realTime = new RealTimeKeeper(Controls.TvNorm.Frequencies, Controls);
+            var artificialTime = new ArtificialTimeKeeper(Controls.TvNorm.Frequencies, Controls);
 
             async Task<(double elapsedTime, double skippedTime)> relax() => 
                 Controls.ZoomT == 1 
@@ -44,7 +42,8 @@ namespace CompositeVideoMonitor {
             double startTime = 0;
             while (!canceller.IsCancellationRequested) {
                 var (elapsedTime, _) = await relax();
-                startTime = Monitor.ElapseTime(startTime, startTime + elapsedTime);
+                startTime = TvMonitor.ElapseTime(startTime, startTime + elapsedTime);
+                Controls.FrameCount = (int)(startTime / Controls.TvNorm.Frequencies.FrameTime);
             }
         }
 
