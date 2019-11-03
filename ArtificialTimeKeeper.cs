@@ -5,6 +5,7 @@ namespace CompositeVideoMonitor {
 
     public class ArtificialTimeKeeper {
 
+ 
         private const int TaskWaitTimeMs = 5;
         readonly TvFrequencies Timing;
         readonly Controls Controls;
