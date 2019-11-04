@@ -39,9 +39,7 @@ namespace CompositeVideoMonitor {
 
         private void ReceiveReady(object _, NetMQSocketEventArgs __) {
             NetMQMessage msg = new NetMQMessage();
-            while (Subscriber.TryReceiveMultipartMessage(ref msg)) {
-                var sampleRate = msg.Pop().ConvertToInt32();
-                var buffer = msg.Pop().ToByteArray();
+            while (Subscriber.TryReceiveFrameBytes(out var buffer)) {
                 if (Queue.Count > buffer.Length * MaxFrames) { continue; }
                 for (int i = 0; i < buffer.Length; i++) {
                     Queue.Enqueue(buffer[i]);
