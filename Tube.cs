@@ -53,8 +53,8 @@ namespace CompositeVideoMonitor {
                 Info = info,
                 Width = TubeWidth, Height = TubeHeight, 
                 Dots =  CurrentSections().SelectMany(x => x.Dots).ToList(),
-                DotWidth = HPos(hOsc.Get(Controls.TvNorm.Frequencies.DotTime)) - HPos(hOsc.Get(0)),
-                DotHeight = VPos(vOsc.Get(Controls.TvNorm.Frequencies.LineTime)) - VPos(vOsc.Get(0)),
+                DotWidth = HPos(hOsc.Get(Controls.TvNorm.DotTime)) - HPos(hOsc.Get(0)),
+                DotHeight = VPos(vOsc.Get(Controls.TvNorm.LineTime)) - VPos(vOsc.Get(0)),
             };
         }
 
@@ -66,7 +66,7 @@ namespace CompositeVideoMonitor {
 
         public double ElapseTime(double startTime, double endTime, ISignal compositeSignal, ISignal hosc, ISignal vosc) {
             var (sections, simulatedEndTime) = CalculateSections(compositeSignal, hosc, vosc, time: startTime, endTime: endTime);
-            var newFrame = RemoveDots(CurrentSections(), simulatedEndTime-Controls.TvNorm.Frequencies.DotTime);
+            var newFrame = RemoveDots(CurrentSections(), simulatedEndTime-Controls.TvNorm.DotTime);
             newFrame.AddRange(sections);
             lock (GateKeeper) {
                 Frame = newFrame;
@@ -80,23 +80,23 @@ namespace CompositeVideoMonitor {
                 double startTime = time;
                 double lineTime = 0;
                 var dots = new List<PhosphorDot>();
-                while (time < endTime && lineTime < Controls.TvNorm.Frequencies.LineTime) {
+                while (time < endTime && lineTime < Controls.TvNorm.LineTime) {
                     dots.Add(new PhosphorDot {
                         VPos = VPos(vOsc.Get(time)),
                         HPos = HPos(hOsc.Get(time)),
                         Brightness = signal.Get(time),
                         Time = time
                     });
-                    time += Controls.TvNorm.Frequencies.DotTime;
-                    lineTime += Controls.TvNorm.Frequencies.DotTime;
+                    time += Controls.TvNorm.DotTime;
+                    lineTime += Controls.TvNorm.DotTime;
                 }
-                sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Controls.TvNorm.Frequencies.DotTime });
+                sections.Add(new FrameSection { Dots = dots, OldestDotTime = startTime, NewestDotTime = time - Controls.TvNorm.DotTime });
             }
             return (sections, time);
         }
 
         List<FrameSection> RemoveDots(List<FrameSection> dots, double time) {
-            var dimmestDotTime = time - Controls.TvNorm.Frequencies.FrameTime;
+            var dimmestDotTime = time - Controls.TvNorm.FrameTime;
 
             var allOrSomeDotsGlowing = dots.Where(x => x.NewestDotTime >= dimmestDotTime).ToList();
             var someDotsGlowing = allOrSomeDotsGlowing.Where(x => x.OldestDotTime < dimmestDotTime);

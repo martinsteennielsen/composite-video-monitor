@@ -31,8 +31,8 @@ namespace CompositeVideoMonitor {
         }
 
         async Task Run(CancellationToken canceller) {
-            var realTime = new RealTimeKeeper(Controls.TvNorm.Frequencies, Controls);
-            var artificialTime = new ArtificialTimeKeeper(Controls.TvNorm.Frequencies, Controls);
+            var realTime = new RealTimeKeeper( Controls);
+            var artificialTime = new ArtificialTimeKeeper(Controls);
 
             async Task<(double elapsedTime, double skippedTime)> relax() => 
                 Controls.ZoomT == 1 
@@ -43,7 +43,7 @@ namespace CompositeVideoMonitor {
             while (!canceller.IsCancellationRequested) {
                 var (elapsedTime, _) = await relax();
                 startTime = TvMonitor.ElapseTime(startTime, startTime + elapsedTime);
-                Controls.FrameCount = (int)(startTime / Controls.TvNorm.Frequencies.FrameTime);
+                Controls.FrameCount = (int)(startTime / Controls.TvNorm.FrameTime);
             }
         }
 

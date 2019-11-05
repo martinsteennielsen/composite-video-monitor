@@ -7,18 +7,16 @@ namespace CompositeVideoMonitor {
 
  
         private const int TaskWaitTimeMs = 5;
-        readonly TvFrequencies Timing;
         readonly Controls Controls;
 
-        public ArtificialTimeKeeper(TvFrequencies timing, Controls controls) {
-            Timing = timing;
+        public ArtificialTimeKeeper(Controls controls) {
             Controls = controls;
         }
 
         double lastTime = 0;
         public async Task<(double, double)> GetElapsedTimeAsync(Func<int> singleStep) {
             double startTime = lastTime;
-            double simulatedDotTime = 1d / Timing.Bandwidth;
+            double simulatedDotTime = 1d / Controls.TvNorm.Bandwidth;
             if (Controls.ZoomT == 0) {
                 await Task.Delay(200);
                 var step = singleStep();

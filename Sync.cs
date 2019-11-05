@@ -5,15 +5,13 @@ namespace CompositeVideoMonitor {
     public class Sync {
         readonly IPeriodic HRef, VRef;
         readonly PhaseDetector HPhaseDetect, VPhaseDetect;
-        readonly TvNorm TvNorm;
 
-        public Sync(TvNorm tvNorm, ISignal compositeInput, IPeriodic vref, IPeriodic href) {
+        public Sync( ISignal compositeInput, IPeriodic vref, IPeriodic href) {
             HRef = href;
             VRef = vref;
-            TvNorm = tvNorm;
-            HPhaseDetect = new PhaseDetector(blackLevel: tvNorm.Sync.BlackLevel, reference: href, syncWidth: tvNorm.Sync.LineSyncTime, signal: compositeInput);
-            double syncWidth = 0.5 * tvNorm.Frequencies.LineTime - tvNorm.Sync.LineSyncTime;
-            VPhaseDetect = new PhaseDetector(blackLevel: tvNorm.Sync.BlackLevel, reference: vref, syncWidth: syncWidth, signal: compositeInput);
+            HPhaseDetect = new PhaseDetector(blackLevel: TvSync.BlackLevel, reference: href, syncWidth: TvSync.LineSyncTime, signal: compositeInput);
+            double vSyncWidth = 0.5 * (1d / href.Frequency) - TvSync.LineSyncTime;
+            VPhaseDetect = new PhaseDetector(blackLevel: TvSync.BlackLevel, reference: vref, syncWidth: vSyncWidth, signal: compositeInput);
         }
 
         public void ElapseTime(double time) {

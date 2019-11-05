@@ -13,9 +13,9 @@ namespace CompositeVideoMonitor {
             Controls = controls;
             CompositeInput = compositeInput;
             Tube = tube;
-            VOsc = new SawtoothSignal { Frequency = controls.TvNorm.Frequencies.Vertical, Phase = 0 };
-            HOsc = new SawtoothSignal { Frequency = controls.TvNorm.Frequencies.Horizontal, Phase = 0 };
-            Sync = new Sync(controls.TvNorm, compositeInput, VOsc, HOsc);
+            VOsc = new SawtoothSignal { Frequency = controls.TvNorm.Vertical, Phase = 0 };
+            HOsc = new SawtoothSignal { Frequency = controls.TvNorm.Horizontal, Phase = 0 };
+            Sync = new Sync(compositeInput, VOsc, HOsc);
         }
 
         public double ElapseTime(double startTime, double endTime) =>
