@@ -1,7 +1,6 @@
 ﻿namespace CompositeVideoMonitor {
 
     public struct TvSync {
-
         public static readonly double LineBlankingTim = 12.05e-6;
         public static readonly double LineSyncTime = 4.7e-6;
         public static readonly double FrontPorchTime = 1.65e-6;
@@ -26,5 +25,8 @@
             Horizontal = horizontal; Vertical = vertical; Bandwidth = bandwidth;
             LineTime = 1d / Horizontal; FrameTime = frameTime ?? (1d / Vertical); DotTime = 1d / Bandwidth;
         }
+
+        public TvNorm WithBandWidth(double bandWidth) =>
+             new TvNorm(Horizontal, Vertical, bandWidth, FrameTime);
     }
 }

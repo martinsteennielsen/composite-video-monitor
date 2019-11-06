@@ -14,6 +14,7 @@ namespace CompositeVideoMonitor {
 
         double LastSampleTime = 0;
         double LastSampleValue = 0;
+        public double LastSampleRate;
 
         public double Get(double time) {
             if (time <= LastSampleTime) { return LastSampleValue; }
@@ -39,7 +40,9 @@ namespace CompositeVideoMonitor {
 
         private void ReceiveReady(object _, NetMQSocketEventArgs __) {
             NetMQMessage msg = new NetMQMessage();
-            while (Subscriber.TryReceiveFrameBytes(out var buffer)) {
+            while (Subscriber.TryReceiveMultipartMessage(ref msg)) {
+                LastSampleRate = msg.Pop().ConvertToInt64(); 
+                var buffer = msg.Pop().ToByteArray();
                 if (Queue.Count > buffer.Length * MaxFrames) { continue; }
                 for (int i = 0; i < buffer.Length; i++) {
                     Queue.Enqueue(buffer[i]);

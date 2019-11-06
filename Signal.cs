@@ -12,23 +12,26 @@ namespace CompositeVideoMonitor {
     }
 
     public interface IPeriodic : ISignal {
-        double Frequency { get; set; }
-        double Phase { get; set; }
+        double Frequency { get; }
+        double Phase { set; }
     }
 
     public class SawtoothSignal : IPeriodic {
-        double period, frequency, angularShift, phase;
+        readonly double frequency;
+        double angularShift, phase;
 
         public double Frequency {
             get => frequency;
-            set { frequency = value; period = 1d / value; }
         }
 
         public double Phase {
-            get => phase;
             set { phase = value; angularShift = value / frequency / Math.PI; }
         }
+        
+        public SawtoothSignal(double freq) { 
+            frequency = freq;
+        }
 
-        public double Get(double time) => -1 + 2 * frequency * ((time + angularShift) % period);
+        public double Get(double time) => -1 + 2 * frequency * ((time + angularShift) % (1.0/frequency));
     }
 }

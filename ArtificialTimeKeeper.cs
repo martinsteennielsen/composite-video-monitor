@@ -16,7 +16,7 @@ namespace CompositeVideoMonitor {
         double lastTime = 0;
         public async Task<(double, double)> GetElapsedTimeAsync(Func<int> singleStep) {
             double startTime = lastTime;
-            double simulatedDotTime = 1d / Controls.TvNorm.Bandwidth;
+            double simulatedDotTime = 1d / Controls.TvNorm.DefaultBandwidth;
             if (Controls.ZoomT == 0) {
                 await Task.Delay(200);
                 var step = singleStep();
