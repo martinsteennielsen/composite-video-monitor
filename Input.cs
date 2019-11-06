@@ -5,25 +5,26 @@ using System.Collections.Concurrent;
 
 namespace CompositeVideoMonitor {
 
-    public class Input : ISignal, IDisposable {
+    public class Input : IDisposable {
         readonly ConcurrentQueue<byte> Queue = new ConcurrentQueue<byte>();
         readonly SubscriberSocket Subscriber;
         readonly NetMQPoller Poller;
-        readonly ISignal Noise = new NoiseSignal();
         readonly double MaxFrames;
 
         double LastSampleTime = 0;
         double LastSampleValue = 0;
-        public double LastSampleRate;
+        public double LastSampleRate = 5e6;
 
-        public double Get(double time) {
-            if (time <= LastSampleTime) { return LastSampleValue; }
-            if (Queue.IsEmpty) { return Noise.Get(time); }
+        public bool TryGet(double time, out double value, out double sampleRate) {
+            value=LastSampleValue; sampleRate = LastSampleRate;
+            if (Queue.IsEmpty) { return false; }
+            if (time <= LastSampleTime) { return true; }
             byte signalValue;
             while (!Queue.TryDequeue(out signalValue)) ;
             LastSampleTime = time;
-            LastSampleValue = signalValue;
-            return signalValue / 255.0;
+            value = LastSampleValue = signalValue / 255.0;
+            sampleRate = LastSampleRate;
+            return true;
         }
 
         public Input(string address, int maxFrames) {

@@ -8,23 +8,28 @@ namespace CompositeVideoMonitor {
         readonly IPeriodic VOsc, HOsc;
         readonly Sync Sync;
         readonly Controls Controls;
+        readonly ISignal Noise = new NoiseSignal();
 
         public TvMonitor(Controls controls, Tube tube, Input compositeInput) {
             Controls = controls;
             CompositeInput = compositeInput;
+
             Tube = tube;
             VOsc = new SawtoothSignal(freq : controls.TvNorm.Vertical);
             HOsc = new SawtoothSignal(freq : controls.TvNorm.Horizontal);
-            Sync = new Sync(compositeInput, VOsc, HOsc);
+            Sync = new Sync(VOsc, HOsc);
         }
 
         public double ElapseTime(double startTime, double endTime) =>
             Tube.ElapseTime(startTime, endTime, compositeSignal: this, hosc: HOsc, vosc: VOsc);
 
         double ISignal.Get(double time) {
-            var res = CompositeInput.Get(time);
-            Sync.ElapseTime(time);
-            Controls.TvNorm = Controls.TvNorm.WithBandWidth(CompositeInput.LastSampleRate);
+            if (!CompositeInput.TryGet(time, out var res, out var sampleRate)) {
+                res = Noise.Get(time);
+            } else {
+                Controls.TvNorm = Controls.TvNorm.WithBandWidth(sampleRate);
+            }
+            Sync.ElapseTime(time, res);
             return res;
         }
 
