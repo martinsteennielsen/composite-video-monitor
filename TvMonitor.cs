@@ -26,7 +26,9 @@ namespace CompositeVideoMonitor {
         double ISignal.Get(double time) {
             if (!CompositeInput.TryGet(time, out var res, out var sampleRate)) {
                 res = Noise.Get(time);
+                Controls.TvNorm = TvNorm.pPal;
             } else {
+                Controls.TvNorm = Controls.TvNorm.WithFrequency(VOsc.Frequency);
                 Controls.TvNorm = Controls.TvNorm.WithBandWidth(sampleRate);
             }
             Sync.ElapseTime(time, res);

@@ -48,15 +48,14 @@ namespace CompositeVideoMonitor {
         double VPos(double volt) =>
             0.5 * volt * VGain * TubeHeight / FullDeflectionVoltage;
 
-        public Picture GetPicture(ISignal hOsc, ISignal vOsc, string info) {
-            return new Picture {
+        public Picture GetPicture(ISignal hOsc, ISignal vOsc, string info) =>
+            new Picture {
                 Info = info,
-                Width = TubeWidth, Height = TubeHeight, 
-                Dots =  CurrentSections().SelectMany(x => x.Dots).ToList(),
-                DotWidth = HPos(hOsc.Get(Controls.TvNorm.DotTime)) - HPos(hOsc.Get(0)),
-                DotHeight = VPos(vOsc.Get(Controls.TvNorm.LineTime)) - VPos(vOsc.Get(0)),
+                Width = TubeWidth, Height = TubeHeight,
+                Dots = CurrentSections().SelectMany(x => x.Dots).ToList(),
+                DotWidth = TubeWidth / (Controls.TvNorm.Bandwidth / Controls.TvNorm.Horizontal),
+                DotHeight = TubeHeight / (Controls.TvNorm.Horizontal*Controls.TvNorm.FrameTime),
             };
-        }
 
         List<FrameSection> CurrentSections() {
             lock (GateKeeper) {

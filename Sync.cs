@@ -15,11 +15,14 @@ namespace CompositeVideoMonitor {
         }
 
         public void ElapseTime(double time, double signalValue) {
-            if (HPhaseDetect.ElapseTimeAndTryGetPhase(time, signalValue, out var hphase)) {
+            if (HPhaseDetect.ElapseTimeAndTryGetPhase(time, signalValue, out var hphase, out var _)) {
                 HRef.Phase = -hphase;
             }
-            if (VPhaseDetect.ElapseTimeAndTryGetPhase(time, signalValue, out var vphase)) {
-                VRef.Phase = -vphase;
+            if (VPhaseDetect.ElapseTimeAndTryGetPhase(time, signalValue, out var vphase, out var syncFreq)) {
+                if (syncFreq > 0.2 * VRef.Frequency && syncFreq < 5*VRef.Frequency) {
+                    VRef.Phase = -vphase;
+                    VRef.Frequency = syncFreq;
+                }
             }
         }
 
@@ -28,6 +31,7 @@ namespace CompositeVideoMonitor {
             readonly IPeriodic Reference;
 
             double? SyncStartTime, SyncEndTime;
+            double LastSyncTime = 0;
 
             public PhaseDetector(double blackLevel, IPeriodic reference, double syncWidth) {
                 BlackLevel = blackLevel;
@@ -35,8 +39,9 @@ namespace CompositeVideoMonitor {
                 Reference = reference;
             }
 
-            public bool ElapseTimeAndTryGetPhase(double time, double signalValue, out double phase) {
+            public bool ElapseTimeAndTryGetPhase(double time, double signalValue, out double phase, out double syncFreq) {
                 phase =0;
+                syncFreq = Reference.Frequency;
                 bool sync = signalValue < 0.5*BlackLevel;                
                 if (SyncStartTime == null && sync) SyncStartTime = time;
                 if (SyncStartTime == null) { return false; }
@@ -48,6 +53,8 @@ namespace CompositeVideoMonitor {
                     return false;
                 } 
                 double syncTime = SyncStartTime.Value % (1d / Reference.Frequency);
+                syncFreq = 1.0 / (time - LastSyncTime);
+                LastSyncTime = time;
                 phase = Math.PI * syncTime * Reference.Frequency;
                 if (phase > Math.PI/2) { phase -= Math.PI; }
                 SyncStartTime = SyncEndTime = null;
