@@ -28,5 +28,7 @@
 
         public TvNorm WithBandWidth(double bandWidth) =>
              new TvNorm(Horizontal, Vertical, bandWidth, FrameTime);
+        public TvNorm WithFrequency(double vFreq) =>
+             new TvNorm(Horizontal, vFreq, Bandwidth, FrameTime);
     }
 }
